@@ -1,0 +1,24 @@
+# Dossiers Node.js
+cockpit-ui/node_modules/
+
+# Dossiers Python
+__pycache__/
+*.pyc
+
+# Environnements virtuels Python
+venv/
+env/
+
+# Logs
+*.log
+
+# Configs locales (si tu utilises des fichiers .env pour secrets)
+.env
+.env.*
+
+# Builds front-end (si cockpit-ui génère un dossier dist ou build)
+cockpit-ui/dist/
+cockpit-ui/build/
+
+# Dossier VS Code
+.vscode/
