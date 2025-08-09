@@ -2,8 +2,41 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useDragMode } from "../DragContext";
+import { useWS } from "../WebSocketProvider";
 
 export default function CadranVitesse() {
+
+  const wsData = useWS();
+
+  const voltage = Number(wsData?.vitesse ?? 0); // 0–3.3V
+  const speed = Math.max(0, Math.min(240, (voltage / 3.3) * 240)); // float 0–240
+  const vitesse = Math.round(speed); // si tu affiches des chiffres
+
+  // Angles du cadran
+  const MIN_ANGLE = -107;
+  const MAX_ANGLE = 107;
+  const targetAngle = MIN_ANGLE + (speed / 240) * (MAX_ANGLE - MIN_ANGLE);
+  const [angle, setAngle] = useState(targetAngle);
+
+  useEffect(() => {
+    let raf: number;
+    let prev = performance.now();
+    const MAX_SPEED = 600; // deg/sec (ajuste 400–900 selon le feeling)
+    const step = (now: number) => {
+      const dt = (now - prev) / 1000;
+      prev = now;
+      setAngle((a) => {
+        const diff = targetAngle - a;
+        const maxStep = MAX_SPEED * dt;
+        if (Math.abs(diff) <= maxStep) return targetAngle;
+        return a + Math.sign(diff) * maxStep;
+      });
+      raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [targetAngle]);
+
   const [position, setPosition] = useState(() => {
     const saved = localStorage.getItem("cadran_vitesse_position");
     return saved ? JSON.parse(saved) : { x: 400, y: 200 };
@@ -172,24 +205,6 @@ export default function CadranVitesse() {
 
         {/* Autres lignes du cadran... */}
 
-        {/* Aiguille dynamique */}
-        <line
-          id="aiguille"
-          x1="235" y1="235"  //* Centre du cadran
-          x2="13.0613" y2="307.633"  //* Point de départ (ligne de référence)
-          stroke="#FF0707"
-          strokeWidth="3"
-        />
-
-        {/* Animation de l'aiguille */}
-        <animateTransform
-          xlinkHref="#aiguille"
-          attributeName="transform"
-          type="rotate"
-          from="0 235 235"
-          to="217 235 235"
-        />
-
         {/* Cercle au centre */}
         <circle
           cx="235"
@@ -200,6 +215,17 @@ export default function CadranVitesse() {
           strokeWidth="3"  // Épaisseur de la bordure ajustable
 
         />
+
+        <text x="235" y="310" textAnchor="middle" fontSize="32" fontFamily="system-ui" fontWeight="700" fill="#EEE">
+          {vitesse}
+        </text>
+        <text x="235" y="280" textAnchor="middle" fontSize="20" fontFamily="system-ui" fill="#888">km/h</text>
+
+        {/* Aiguille dynamique */}
+        <g transform={`rotate(${angle} 235 235)`}>
+          <line x1="235" y1="235" x2="235" y2="40" stroke="#FF0707" strokeWidth="4" strokeLinecap="round" />
+          <line x1="235" y1="235" x2="235" y2="260" stroke="#FF0707" strokeWidth="4" strokeLinecap="round" />
+        </g>
       </svg>
     </div>
   );
