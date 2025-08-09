@@ -213,12 +213,10 @@ export default function CadranVitesse() {
           fill="#FF0707"  // Couleur ajustable
           stroke="#500"  // Bordure ajustable
           strokeWidth="3"  // Épaisseur de la bordure ajustable
-
         />
 
         <text x="235" y="310" textAnchor="middle" fontSize="32" fontFamily="system-ui" fontWeight="700" fill="#EEE">
-          {vitesse}
-        </text>
+          {vitesse}</text>
         <text x="235" y="280" textAnchor="middle" fontSize="20" fontFamily="system-ui" fill="#888">km/h</text>
 
         {/* Aiguille dynamique */}

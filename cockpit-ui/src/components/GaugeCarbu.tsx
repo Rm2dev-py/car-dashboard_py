@@ -120,6 +120,8 @@ export default function GaugeCarbu() {
           strokeDasharray={dashLength}
           strokeDashoffset={dashOffset}
         />
+          {/* Texte E (Empty) à gauche */}
+
       </svg>
 
       <div style={{
@@ -134,5 +136,6 @@ export default function GaugeCarbu() {
         {percentage}%
       </div>
     </div>
+    
   );
 }
