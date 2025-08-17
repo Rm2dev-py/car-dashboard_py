@@ -24,6 +24,7 @@ import GradVit from "./components/GradVit.tsx";
 import GaugeCarbu from "./components/GaugeCarbu";
 import CarSimu from "./components/CarSimu";
 import VitSimu from "./components/VitSimu.tsx";
+import IconPetrole from "./components/IconPetrole.tsx";
 
 
 
@@ -53,6 +54,7 @@ export default function App() {
         <GaugeCarbu />
         <CarSimu />
         <VitSimu />
+        <IconPetrole />
 
 
         <div className="relative z-10 h-full w-full flex flex-col items-center justify-center gap-10 p-4">
