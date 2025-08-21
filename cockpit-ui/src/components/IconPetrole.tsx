@@ -1,82 +1,42 @@
 // src/components/IconPetrole.tsx
-import { useEffect, useState, useRef } from "react";
-import { useDragMode } from "../DragContext";
+import React from "react";
 
-export default function IconPetrole() {
-  const { dragEnabled } = useDragMode();
+type Props = {
+  width?: number | string;
+  height?: number | string;
+  className?: string;
+  style?: React.CSSProperties;
+  /** Couleur de l’icône */
+  fill?: string;                 // défaut: blanc
+  /** Libellé a11y */
+  title?: string;                // défaut: "Icône pompe à essence"
+};
 
-  const [position, setPosition] = useState(() => {
-    const saved = localStorage.getItem("icon_petrole_position");
-    return saved ? JSON.parse(saved) : { x: 200, y: 200 };
-  });
-
-  const dragging = useRef(false);
-  const offset = useRef({ x: 100, y: 100 });
-  const ref = useRef<HTMLDivElement>(null);
-
-  const handleStart = (e: React.MouseEvent | React.TouchEvent) => {
-    dragging.current = true;
-    const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
-    const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
-    offset.current = {
-      x: clientX - position.x,
-      y: clientY - position.y,
-    };
-  };
-
-  const handleMove = (e: MouseEvent | TouchEvent) => {
-    if (!dragging.current) return;
-    const clientX =
-      "touches" in e ? (e as TouchEvent).touches[0].clientX : (e as MouseEvent).clientX;
-    const clientY =
-      "touches" in e ? (e as TouchEvent).touches[0].clientY : (e as MouseEvent).clientY;
-    const grid = 5;
-    const snappedX = Math.round((clientX - offset.current.x) / grid) * grid;
-    const snappedY = Math.round((clientY - offset.current.y) / grid) * grid;
-    setPosition({ x: snappedX, y: snappedY });
-  };
-
-  const handleEnd = () => {
-    dragging.current = false;
-  };
-
-  useEffect(() => {
-    localStorage.setItem("icon_petrole_position", JSON.stringify(position));
-  }, [position]);
-
-  useEffect(() => {
-    window.addEventListener("mousemove", handleMove);
-    window.addEventListener("mouseup", handleEnd);
-    window.addEventListener("touchmove", handleMove);
-    window.addEventListener("touchend", handleEnd);
-    return () => {
-      window.removeEventListener("mousemove", handleMove);
-      window.removeEventListener("mouseup", handleEnd);
-      window.removeEventListener("touchmove", handleMove);
-      window.removeEventListener("touchend", handleEnd);
-    };
-  }, []);
-
+export default function IconPetrole({
+  width = 21,
+  height = 22,
+  className = "",
+  style,
+  fill = "#FFFFFF",
+  title = "Icône pompe à essence",
+}: Props) {
   return (
-    <div
-      ref={ref}
-      style={{
-        position: "absolute",
-        top: position.y,
-        left: position.x,
-        zIndex: 20,
-        cursor: "grab",
-        touchAction: "none",
-      }}
-      onMouseDown={dragEnabled ? handleStart : undefined}
-      onTouchStart={dragEnabled ? handleStart : undefined}
+    <svg
+      width={width}
+      height={height}
+      viewBox="0 0 21 22"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-label={title}
+      className={className}
+      style={style}
+      preserveAspectRatio="xMidYMid meet"
     >
-      <svg width="21" height="22" viewBox="0 0 21 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path
-          d="M0.366922 20.4439C0.366922 19.94 0.780809 19.5261 1.27567 19.5261H1.85152V3.3485C1.85152 1.77393 2.70629 0.901163 4.28986 0.901163H11.6589C13.2244 0.901163 14.0972 1.76493 14.0972 3.3485V8.24317C15.7437 8.91799 16.4186 10.0787 16.4186 11.5633C16.4186 13.1828 16.2026 14.8744 16.2026 16.215C16.2026 17.0698 16.7065 17.5736 17.5073 17.5736C18.425 17.5736 18.9379 16.9078 18.9379 15.6752C18.9379 13.9296 18.659 11.7252 18.1281 9.2329L16.3916 7.3884C16.0497 7.01051 16.0047 6.73158 16.2206 6.32669L16.9674 4.94107C17.0394 4.8241 17.0304 4.69813 16.9584 4.59916L15.6898 3.00659C15.1409 2.33177 16.1306 1.58498 16.6345 2.2238L17.6332 3.47446C18.1821 4.15828 18.47 4.92307 18.668 5.85882L18.8569 6.73158C19.7207 10.7715 20.1436 13.4078 20.1436 15.6752C20.1436 17.6636 19.1898 18.7883 17.5073 18.7883C15.9777 18.7883 14.988 17.7896 14.988 16.215C14.988 14.6944 15.2039 12.9939 15.2039 11.5633C15.2039 10.7535 14.889 10.0607 14.0972 9.58381V19.5261H14.664C15.1679 19.5261 15.5818 19.94 15.5818 20.4439C15.5818 20.9477 15.1679 21.3616 14.664 21.3616H1.27567C0.780809 21.3616 0.366922 20.9477 0.366922 20.4439ZM4.65876 9.17892H11.29C11.9018 9.17892 12.2977 8.82801 12.2977 8.27016V3.61843C12.2977 3.06058 11.9108 2.70067 11.29 2.70067H4.65876C4.03793 2.70067 3.65103 3.06058 3.65103 3.61843V8.27016C3.65103 8.82801 4.03793 9.17892 4.65876 9.17892Z"
-          fill="white"
-        />
-      </svg>
-    </div>
+      <path
+        d="M0.366922 20.4439C0.366922 19.94 0.780809 19.5261 1.27567 19.5261H1.85152V3.3485C1.85152 1.77393 2.70629 0.901163 4.28986 0.901163H11.6589C13.2244 0.901163 14.0972 1.76493 14.0972 3.3485V8.24317C15.7437 8.91799 16.4186 10.0787 16.4186 11.5633C16.4186 13.1828 16.2026 14.8744 16.2026 16.215C16.2026 17.0698 16.7065 17.5736 17.5073 17.5736C18.425 17.5736 18.9379 16.9078 18.9379 15.6752C18.9379 13.9296 18.659 11.7252 18.1281 9.2329L16.3916 7.3884C16.0497 7.01051 16.0047 6.73158 16.2206 6.32669L16.9674 4.94107C17.0394 4.8241 17.0304 4.69813 16.9584 4.59916L15.6898 3.00659C15.1409 2.33177 16.1306 1.58498 16.6345 2.2238L17.6332 3.47446C18.1821 4.15828 18.47 4.92307 18.668 5.85882L18.8569 6.73158C19.7207 10.7715 20.1436 13.4078 20.1436 15.6752C20.1436 17.6636 19.1898 18.7883 17.5073 18.7883C15.9777 18.7883 14.988 17.7896 14.988 16.215C14.988 14.6944 15.2039 12.9939 15.2039 11.5633C15.2039 10.7535 14.889 10.0607 14.0972 9.58381V19.5261H14.664C15.1679 19.5261 15.5818 19.94 15.5818 20.4439C15.5818 20.9477 15.1679 21.3616 14.664 21.3616H1.27567C0.780809 21.3616 0.366922 20.9477 0.366922 20.4439ZM4.65876 9.17892H11.29C11.9018 9.17892 12.2977 8.82801 12.2977 8.27016V3.61843C12.2977 3.06058 11.9108 2.70067 11.29 2.70067H4.65876C4.03793 2.70067 3.65103 3.06058 3.65103 3.61843V8.27016C3.65103 8.82801 4.03793 9.17892 4.65876 9.17892Z"
+        fill={fill}
+      />
+    </svg>
   );
 }

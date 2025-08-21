@@ -1,84 +1,81 @@
 // src/components/RpmDyn.tsx
-import { useEffect, useRef, useState } from "react";
+import React from "react";
 import { useWS } from "../WebSocketProvider";
 
-export default function RpmDyn() {
+type Props = {
+  className?: string;
+  style?: React.CSSProperties;
+  /** Valeur max RPM utilisée pour la conversion 0–3.3V → 0–maxRPM */
+  maxRPM?: number;              // défaut: 8000
+  /** Affichage en milliers (ex: 4 pour 4000) ou brut (ex: 4000) */
+  displayMode?: "k" | "raw";    // défaut: "k"
+  /** Nombre de décimales à l’affichage */
+  decimals?: number;            // défaut: 0
+  /** Méthode d’arrondi */
+  rounding?: "floor" | "round" | "ceil"; // défaut: "floor"
+  /** Largeur pratique pour centrer le texte */
+  width?: number | string;      // défaut: 120
+  /** Couleur/typo par défaut */
+  color?: string;               // défaut: "#fff"
+  fontSize?: number | string;   // défaut: 32
+  fontWeight?: React.CSSProperties["fontWeight"]; // défaut: "bold"
+  textAlign?: "left" | "center" | "right";        // défaut: "center"
+  /** Formatter custom si besoin (reçoit le rpm brut et le texte final) */
+  format?: (rpm: number, display: string) => React.ReactNode;
+  /** Libellé a11y */
+  title?: string;               // défaut: "Régime moteur"
+};
+
+export default function RpmDyn({
+  className = "",
+  style,
+  maxRPM = 8000,
+  displayMode = "k",
+  decimals = 0,
+  rounding = "floor",
+  width = 120,
+  color = "#FFFFFF",
+  fontSize = 32,
+  fontWeight = "bold",
+  textAlign = "center",
+  format,
+  title = "Régime moteur",
+}: Props) {
   const wsData = useWS();
+  const voltage = wsData?.rpm_moteur ?? 0; // 0–3.3V
 
-  const voltage = wsData?.rpm_moteur ?? 0; // valeur entre 0 et 3.3V
-  const rpm = Math.floor((voltage / 3.3) * 8000 / 1000); // conversion linéaire 0–3.3V → 0–8000 tr/min
+  // Conversion linéaire 0–3.3V -> 0–maxRPM
+  const raw = Math.max(0, Math.min(maxRPM, (voltage / 3.3) * maxRPM));
 
-  const [position, setPosition] = useState(() => {
-    const saved = localStorage.getItem("RpmDyn_position");
-    return saved ? JSON.parse(saved) : { x: 500, y: 200 };
-  });
+  // Affichage (par défaut: milliers comme l’ancien composant)
+  const valueForDisplay = displayMode === "k" ? raw / 1000 : raw;
 
-  const dragging = useRef(false);
-  const offset = useRef({ x: 0, y: 0 });
-  const grid = 5;
-  const ref = useRef<HTMLDivElement>(null);
+  const applyRound = (v: number) =>
+    rounding === "ceil" ? Math.ceil(v) : rounding === "round" ? Math.round(v) : Math.floor(v);
 
-  const handleStart = (e: React.MouseEvent | React.TouchEvent) => {
-    const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
-    const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
-    offset.current = {
-      x: clientX - position.x,
-      y: clientY - position.y,
-    };
-    dragging.current = true;
+  const rounded = decimals > 0 ? valueForDisplay.toFixed(decimals) : String(applyRound(valueForDisplay));
+
+  const displayText = rounded;
+
+  const mergedStyle: React.CSSProperties = {
+    width,
+    color,
+    fontSize,
+    fontWeight,
+    textAlign,
+    userSelect: "none",
+    ...style,
   };
-
-  const handleMove = (e: MouseEvent | TouchEvent) => {
-    if (!dragging.current) return;
-    const clientX = "touches" in e ? (e as TouchEvent).touches[0].clientX : (e as MouseEvent).clientX;
-    const clientY = "touches" in e ? (e as TouchEvent).touches[0].clientY : (e as MouseEvent).clientY;
-    const snappedX = Math.round((clientX - offset.current.x) / grid) * grid;
-    const snappedY = Math.round((clientY - offset.current.y) / grid) * grid;
-    setPosition({ x: snappedX, y: snappedY });
-  };
-
-  const handleEnd = () => {
-    dragging.current = false;
-  };
-
-  useEffect(() => {
-    localStorage.setItem("RpmDyn_position", JSON.stringify(position));
-  }, [position]);
-
-  useEffect(() => {
-    window.addEventListener("mousemove", handleMove);
-    window.addEventListener("mouseup", handleEnd);
-    window.addEventListener("touchmove", handleMove);
-    window.addEventListener("touchend", handleEnd);
-    return () => {
-      window.removeEventListener("mousemove", handleMove);
-      window.removeEventListener("mouseup", handleEnd);
-      window.removeEventListener("touchmove", handleMove);
-      window.removeEventListener("touchend", handleEnd);
-    };
-  }, []);
 
   return (
     <div
-      ref={ref}
-      style={{
-        position: "absolute",
-        top: position.y,
-        left: position.x,
-        zIndex: 30,
-        cursor: "grab",
-        touchAction: "none",
-        fontSize: "32px",
-        fontWeight: "bold",
-        userSelect: "none",
-        color: "white",
-        textAlign: "center",
-        width: "120px", // largeur fixe pour centrage
-      }}
-      onMouseDown={handleStart}
-      onTouchStart={handleStart}
+      role="text"
+      aria-label={title}
+      className={className}
+      style={mergedStyle}
+      title={title}
     >
-      {rpm}
+      {format ? format(raw, displayText) : displayText}
     </div>
   );
 }

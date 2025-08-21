@@ -1,141 +1,107 @@
 // src/components/GaugeCarbu.tsx
-
-import { useEffect, useRef, useState } from "react";
-import { useDragMode } from "../DragContext";
+import React from "react";
 import { useWS } from "../WebSocketProvider";
 
-export default function GaugeCarbu() {
-  const [position, setPosition] = useState(() => {
-    const saved = localStorage.getItem("gauge_carbu_position");
-    return saved ? JSON.parse(saved) : { x: 400, y: 200 };
-  });
-  const { dragEnabled } = useDragMode();
+type Props = {
+  width?: number;
+  height?: number;
+  className?: string;
+  style?: React.CSSProperties;
+  /** tension min/max pour le calcul du pourcentage */
+  minV?: number;
+  maxV?: number;
+  /** sens du remplissage: true = gauche→droite (horaire), false = droite→gauche */
+  sensHoraire?: boolean;
+  /** afficher le pourcentage au centre */
+  showPercent?: boolean;
+  /** miroir horizontal du tracé (utile si ton asset est inversé dans le layout) */
+  flipHorizontally?: boolean;
+};
+
+export default function GaugeCarbu({
+  width = 296,
+  height = 71,
+  className = "",
+  style,
+  minV = 0,
+  maxV = 3.3,
+  sensHoraire = true,
+  showPercent = true,
+  flipHorizontally = true,
+}: Props) {
   const wsData = useWS();
+  const voltage = Number(wsData?.niveau_carbu ?? 0);
 
-  const voltage = wsData?.niveau_carbu ?? 0; // 0–3.3V
-  const percentage = Math.floor((voltage / 3.3) * 100); // 0–100%
+  // Clamp + pourcentage
+  const clamped = Math.min(Math.max(voltage, minV), maxV);
+  const pct = Math.round(((clamped - minV) / Math.max(1e-6, maxV - minV)) * 100);
 
-  const dragging = useRef(false);
-  const offset = useRef({ x: 0, y: 0 });
-  const grid = 5;
-  const ref = useRef<HTMLDivElement>(null);
+  // dashOffset sur base pathLength=100 (plus robuste que "350" en dur)
+  const dashOffset = sensHoraire ? 100 - pct : pct;
 
-  const handleStart = (e: React.MouseEvent | React.TouchEvent) => {
-    const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
-    const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
-    offset.current = {
-      x: clientX - position.x,
-      y: clientY - position.y,
-    };
-    dragging.current = true;
-  };
-
-  const handleMove = (e: MouseEvent | TouchEvent) => {
-    if (!dragging.current) return;
-    const clientX = "touches" in e ? (e as TouchEvent).touches[0].clientX : (e as MouseEvent).clientX;
-    const clientY = "touches" in e ? (e as TouchEvent).touches[0].clientY : (e as MouseEvent).clientY;
-    const snappedX = Math.round((clientX - offset.current.x) / grid) * grid;
-    const snappedY = Math.round((clientY - offset.current.y) / grid) * grid;
-    setPosition({ x: snappedX, y: snappedY });
-  };
-
-  const handleEnd = () => {
-    dragging.current = false;
-  };
-
-  useEffect(() => {
-    localStorage.setItem("gauge_carbu_position", JSON.stringify(position));
-  }, [position]);
-
-  useEffect(() => {
-    window.addEventListener("mousemove", handleMove);
-    window.addEventListener("mouseup", handleEnd);
-    window.addEventListener("touchmove", handleMove);
-    window.addEventListener("touchend", handleEnd);
-    return () => {
-      window.removeEventListener("mousemove", handleMove);
-      window.removeEventListener("mouseup", handleEnd);
-      window.removeEventListener("touchmove", handleMove);
-      window.removeEventListener("touchend", handleEnd);
-    };
-  }, []);
-
-  // === PARAMETRE DE DIRECTION (🧭 sens du remplissage SVG) ===
-  // Si "true", remplissage dans le sens horaire (gauche → droite)
-  // Si "false", sens antihoraire (droite → gauche)
-  const sensHoraire = true;
-
-  const dashLength = 350; // longueur approx du chemin visible à 100%
-  const dashOffset = sensHoraire
-    ? (dashLength * (100 - percentage)) / 100
-    : (dashLength * percentage) / 100;
+  // Tracé partagé
+  const dPath =
+    "M290.361 5.36102C242.122 54.841 175.481 73.9407 113.035 62.6602C73.7762 55.5682 36.1755 36.4685 5.84824 5.36102";
 
   return (
-    <div
-      ref={ref}
-      style={{
-        position: "absolute",
-        top: position.y,
-        left: position.x,
-        zIndex: 30,
-        cursor: "grab",
-        touchAction: "none",
-        userSelect: "none",
-      }}
-      onMouseDown={dragEnabled ? handleStart : undefined}
-      onTouchStart={dragEnabled ? handleStart : undefined}
+    <svg
+      width={width}
+      height={height}
+      viewBox="0 0 296 71"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      style={style}
+      preserveAspectRatio="xMidYMid meet"
     >
-      <svg
-        width="296"
-        height="65"
-        viewBox="0 0 296 71"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        transform="scale(-1, 1)" // ⬅️ symétrie horizontale
-      >
-        <defs>
-          {/* Dégradé dynamique de rouge (0%) à vert (100%) */}
-          <linearGradient id="carbuGradient" x1="0" y1="0" x2="1" y2="0" gradientUnits="objectBoundingBox">
-            <stop offset="0%" stopColor="red" />
-            <stop offset="10%" stopColor="red" />
-            <stop offset="25%" stopColor="yellow" />
-            <stop offset="100%" stopColor="limegreen" />
-          </linearGradient>
-        </defs>
+      <defs>
+        {/* Dégradé dynamique de rouge (0%) à vert (100%) */}
+        <linearGradient id="carbuGradient" x1="0" y1="0" x2="1" y2="0" gradientUnits="objectBoundingBox">
+          <stop offset="0%" stopColor="red" />
+          <stop offset="10%" stopColor="red" />
+          <stop offset="25%" stopColor="yellow" />
+          <stop offset="100%" stopColor="limegreen" />
+        </linearGradient>
+      </defs>
 
-        {/* Fond neutre gris */}
+      {/* Groupe optionnel pour miroiter correctement (le transform sur <svg> n'est pas pris en compte) */}
+      <g transform={flipHorizontally ? "scale(-1,1) translate(-296,0)" : undefined}>
+        {/* Fond neutre */}
         <path
-          d="M290.361 5.36102C242.122 54.841 175.481 73.9407 113.035 62.6602C73.7762 55.5682 36.1755 36.4685 5.84824 5.36102"
+          d={dPath}
           stroke="#333"
           strokeWidth="10.3191"
           strokeLinecap="round"
+          pathLength={100}
         />
 
-        {/* Barre dynamique avec progression colorée */}
+        {/* Progression */}
         <path
-          d="M290.361 5.36102C242.122 54.841 175.481 73.9407 113.035 62.6602C73.7762 55.5682 36.1755 36.4685 5.84824 5.36102"
+          d={dPath}
           stroke="url(#carbuGradient)"
           strokeWidth="10.3191"
           strokeLinecap="round"
-          strokeDasharray={dashLength}
+          pathLength={100}
+          strokeDasharray={100}
           strokeDashoffset={dashOffset}
         />
-          {/* Texte E (Empty) à gauche */}
+      </g>
 
-      </svg>
-
-      <div style={{
-        position: "absolute",
-        top: "50%",
-        left: "50%",
-        transform: "translate(-50%, -50%)",
-        color: "white",
-        fontSize: "20px",
-        fontWeight: "bold",
-      }}>
-        {percentage}%
-      </div>
-    </div>
-    
+      {/* Libellés & pourcentage (dans le SVG, pas en <div> absolument positionné) */}
+      {showPercent && (
+        <text
+          x="50%"
+          y="50%"
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fontFamily="system-ui, sans-serif"
+          fontSize="18"
+          fontWeight={700}
+          fill="#fff"
+        >
+          {pct}%
+        </text>
+      )}
+    </svg>
   );
 }

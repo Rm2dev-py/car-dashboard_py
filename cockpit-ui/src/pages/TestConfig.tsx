@@ -32,6 +32,7 @@ export default function TestConfig() {
             <ButtonToggle variable="antibrouillard" />
             <ButtonToggle variable="antibrouillardarr" />
             <ButtonToggle variable="ceinture" />
+            <ButtonToggle variable="Oil" />
           </div>
         </div>
       </div>

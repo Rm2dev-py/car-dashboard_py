@@ -1,117 +1,65 @@
 // src/components/CadranVitesse.tsx
-
-import { useEffect, useRef, useState } from "react";
-import { useDragMode } from "../DragContext";
+import React, { useEffect, useState } from "react";
 import { useWS } from "../WebSocketProvider";
 
-export default function CadranVitesse() {
+type Props = {
+  width?: number;                  // dimensions logiques (scalées par ResponsiveStage)
+  height?: number;
+  className?: string;
+  style?: React.CSSProperties;
+};
 
+export default function CadranVitesse({
+  width = 468.95,
+  height = 468.95,
+  className = "",
+  style,
+}: Props) {
   const wsData = useWS();
 
-  const voltage = Number(wsData?.vitesse ?? 0); // 0–3.3V
-  const speed = Math.max(0, Math.min(240, (voltage / 3.3) * 240)); // float 0–240
-  const vitesse = Math.round(speed); // si tu affiches des chiffres
+  // 0–3.3V -> 0–240 km/h
+  const voltage = Number(wsData?.vitesse ?? 0);
+  const speed = Math.max(0, Math.min(240, (voltage / 3.3) * 240));
+  const vitesse = Math.round(speed);
 
-  // Angles du cadran
+  // Mapping vitesse -> angle
   const MIN_ANGLE = -107;
   const MAX_ANGLE = 107;
   const targetAngle = MIN_ANGLE + (speed / 240) * (MAX_ANGLE - MIN_ANGLE);
-  const [angle, setAngle] = useState(targetAngle);
 
+  // Adoucissement de l’aiguille
+  const [angle, setAngle] = useState(targetAngle);
   useEffect(() => {
     let raf: number;
     let prev = performance.now();
-    const MAX_SPEED = 600; // deg/sec (ajuste 400–900 selon le feeling)
-    const step = (now: number) => {
+    const MAX_SPEED = 600; // deg/sec
+    const tick = (now: number) => {
       const dt = (now - prev) / 1000;
       prev = now;
-      setAngle((a) => {
+      setAngle(a => {
         const diff = targetAngle - a;
         const maxStep = MAX_SPEED * dt;
-        if (Math.abs(diff) <= maxStep) return targetAngle;
-        return a + Math.sign(diff) * maxStep;
+        return Math.abs(diff) <= maxStep ? targetAngle : a + Math.sign(diff) * maxStep;
       });
-      raf = requestAnimationFrame(step);
+      raf = requestAnimationFrame(tick);
     };
-    raf = requestAnimationFrame(step);
+    raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, [targetAngle]);
 
-  const [position, setPosition] = useState(() => {
-    const saved = localStorage.getItem("cadran_vitesse_position");
-    return saved ? JSON.parse(saved) : { x: 400, y: 200 };
-  });
-  const { dragEnabled } = useDragMode();
-
-  const dragging = useRef(false);
-  const offset = useRef({ x: 0, y: 0 });
-  const ref = useRef<HTMLDivElement>(null);
-
-  const handleStart = (e: React.MouseEvent | React.TouchEvent) => {
-    dragging.current = true;
-    const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
-    const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
-    offset.current = {
-      x: clientX - position.x,
-      y: clientY - position.y,
-    };
-    handleMove(e as any);
-  };
-
-  const handleMove = (e: MouseEvent | TouchEvent) => {
-    if (!dragging.current) return;
-    const clientX = "touches" in e ? (e as TouchEvent).touches[0].clientX : (e as MouseEvent).clientX;
-    const clientY = "touches" in e ? (e as TouchEvent).touches[0].clientY : (e as MouseEvent).clientY;
-    const grid = 5;
-    const snappedX = Math.round((clientX - offset.current.x) / grid) * grid;
-    const snappedY = Math.round((clientY - offset.current.y) / grid) * grid;
-    setPosition({ x: snappedX, y: snappedY });
-  };
-
-  const handleEnd = () => {
-    dragging.current = false;
-  };
-
-  useEffect(() => {
-    localStorage.setItem("cadran_vitesse_position", JSON.stringify(position));
-  }, [position]);
-
-  useEffect(() => {
-    window.addEventListener("mousemove", handleMove);
-    window.addEventListener("mouseup", handleEnd);
-    window.addEventListener("touchmove", handleMove);
-    window.addEventListener("touchend", handleEnd);
-    return () => {
-      window.removeEventListener("mousemove", handleMove);
-      window.removeEventListener("mouseup", handleEnd);
-      window.removeEventListener("touchmove", handleMove);
-      window.removeEventListener("touchend", handleEnd);
-    };
-  }, []);
-
   return (
-    <div
-      ref={ref}
-      style={{
-        position: "absolute",
-        top: position.y,
-        left: position.x,
-        zIndex: 30,
-        cursor: "grab",
-        touchAction: "none",
-      }}
-      onMouseDown={dragEnabled ? handleStart : undefined}
-      onTouchStart={dragEnabled ? handleStart : undefined}
+    <svg
+      width={width}
+      height={height}
+      viewBox="0 0 468.95 468.95"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      style={style}
+      preserveAspectRatio="xMidYMid meet"
     >
-      {/* 🎯 SVG CADRAN VITESSE À INSÉRER ICI */}
-      <svg
-        width="450"
-        height="390"
-        viewBox="0 0 471 471"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <rect x="233.099" y="0.0834351" width="3.41078" height="17.0539" rx="1.70539" fill="#D9D9D9" />
+      {/* === Ton décor/gradutations === */}
+              <rect x="233.099" y="0.0834351" width="3.41078" height="17.0539" rx="1.70539" fill="#D9D9D9" />
         <rect x="251.746" y="0.696136" width="2.78476" height="8.91123" rx="1.39238" transform="rotate(4.5 251.746 0.696136)" fill="#FF0707" />
         <rect x="270.042" y="2.75198" width="2.78476" height="8.91123" rx="1.39238" transform="rotate(9 270.042 2.75198)" fill="#FF0707" />
         <rect x="288.12" y="6.23624" width="2.78476" height="8.91123" rx="1.39238" transform="rotate(13.5 288.12 6.23624)" fill="#FF0707" />
@@ -202,29 +150,24 @@ export default function CadranVitesse() {
         <rect x="44.7275" y="97.8008" width="3.70852" height="18.5426" rx="1.85426" transform="rotate(-54 44.7275 97.8008)" fill="#D9D9D9" />
         <rect x="96.0541" y="45.7196" width="3.70852" height="18.5426" rx="1.85426" transform="rotate(-36 96.0541 45.7196)" fill="#D9D9D9" />
         <rect x="160.961" y="14.0489" width="3.70852" height="18.5426" rx="1.85426" transform="rotate(-18 160.961 14.0489)" fill="#D9D9D9" />
+      {/* …tes <rect> … (copie/colle ici ton bloc existant) … */}
 
-        {/* Autres lignes du cadran... */}
+      {/* Centre (moyeu) */}
+      <circle cx="235" cy="235" r="15" fill="#FF0707" stroke="#500" strokeWidth="3" />
 
-        {/* Cercle au centre */}
-        <circle
-          cx="235"
-          cy="235"
-          r="15"  // Taille ajustable
-          fill="#FF0707"  // Couleur ajustable
-          stroke="#500"  // Bordure ajustable
-          strokeWidth="3"  // Épaisseur de la bordure ajustable
-        />
+      {/* Valeur numérique */}
+      <text x="235" y="310" textAnchor="middle" fontSize="32" fontFamily="system-ui" fontWeight="700" fill="#EEE">
+        {vitesse}
+      </text>
+      <text x="235" y="280" textAnchor="middle" fontSize="20" fontFamily="system-ui" fill="#888">
+        km/h
+      </text>
 
-        <text x="235" y="310" textAnchor="middle" fontSize="32" fontFamily="system-ui" fontWeight="700" fill="#EEE">
-          {vitesse}</text>
-        <text x="235" y="280" textAnchor="middle" fontSize="20" fontFamily="system-ui" fill="#888">km/h</text>
-
-        {/* Aiguille dynamique */}
-        <g transform={`rotate(${angle} 235 235)`}>
-          <line x1="235" y1="235" x2="235" y2="40" stroke="#FF0707" strokeWidth="4" strokeLinecap="round" />
-          <line x1="235" y1="235" x2="235" y2="260" stroke="#FF0707" strokeWidth="4" strokeLinecap="round" />
-        </g>
-      </svg>
-    </div>
+      {/* Aiguille dynamique */}
+      <g transform={`rotate(${angle} 235 235)`}>
+        <line x1="235" y1="235" x2="235" y2="40" stroke="#FF0707" strokeWidth="4" strokeLinecap="round" />
+        <line x1="235" y1="235" x2="235" y2="260" stroke="#FF0707" strokeWidth="4" strokeLinecap="round" />
+      </g>
+    </svg>
   );
 }

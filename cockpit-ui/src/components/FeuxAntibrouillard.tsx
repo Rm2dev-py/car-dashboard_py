@@ -1,94 +1,39 @@
-import { useEffect, useState, useRef } from "react";
+// src/components/FeuxAntibrouillard.tsx
+import React from "react";
 import { useWS } from "../WebSocketProvider";
 
-export default function FeuxAntibrouillard() {
+type Props = {
+  width?: number;
+  height?: number;
+  className?: string;
+  style?: React.CSSProperties;
+};
+
+export default function FeuxAntibrouillard({
+  width = 34,
+  height = 24,
+  className = "",
+  style,
+}: Props) {
   const wsData = useWS();
-
-  // 🔁 Lecture de l'état ON/OFF du voyant antibrouillard depuis WebSocket
-  const isOn = wsData?.voyant_antibrouillard === 1 || wsData?.voyant_antibrouillard === true;
-
-  // 📍 Position sauvegardée (draggable)
-  const [position, setPosition] = useState(() => {
-    const saved = localStorage.getItem("feuxantibrouillard_position");
-    return saved ? JSON.parse(saved) : { x: 800, y: 100 };
-  });
-
-  const dragging = useRef(false);
-  const offset = useRef({ x: 0, y: 0 });
-  const ref = useRef<HTMLDivElement>(null);
-
-  // 🎯 Drag start
-  const handleStart = (e: React.MouseEvent | React.TouchEvent) => {
-    dragging.current = true;
-    const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
-    const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
-    offset.current = {
-      x: clientX - position.x,
-      y: clientY - position.y,
-    };
-  };
-
-  // 📦 Drag move avec snap 20px
-  const handleMove = (e: MouseEvent | TouchEvent) => {
-    if (!dragging.current) return;
-    const clientX = "touches" in e ? (e as TouchEvent).touches[0].clientX : (e as MouseEvent).clientX;
-    const clientY = "touches" in e ? (e as TouchEvent).touches[0].clientY : (e as MouseEvent).clientY;
-    const grid = 5;
-    const snappedX = Math.round((clientX - offset.current.x) / grid) * grid;
-    const snappedY = Math.round((clientY - offset.current.y) / grid) * grid;
-    setPosition({ x: snappedX, y: snappedY });
-  };
-
-  // 🛑 Drag end
-  const handleEnd = () => {
-    dragging.current = false;
-  };
-
-  // 💾 Sauvegarde position
-  useEffect(() => {
-    localStorage.setItem("feuxantibrouillard_position", JSON.stringify(position));
-  }, [position]);
-
-  // 🧠 Événements globaux souris / tactile
-  useEffect(() => {
-    window.addEventListener("mousemove", handleMove);
-    window.addEventListener("mouseup", handleEnd);
-    window.addEventListener("touchmove", handleMove);
-    window.addEventListener("touchend", handleEnd);
-    return () => {
-      window.removeEventListener("mousemove", handleMove);
-      window.removeEventListener("mouseup", handleEnd);
-      window.removeEventListener("touchmove", handleMove);
-      window.removeEventListener("touchend", handleEnd);
-    };
-  }, []);
+  const isOn =
+    wsData?.voyant_antibrouillard === 1 || wsData?.voyant_antibrouillard === true;
 
   return (
-    <div
-      ref={ref}
-      style={{
-        position: "absolute",
-        top: position.y,
-        left: position.x,
-        zIndex: 20,
-        cursor: "grab",
-        touchAction: "none",
-      }}
-      onMouseDown={handleStart}
-      onTouchStart={handleStart}
+    <svg
+      width={width}
+      height={height}
+      viewBox="0 0 34 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      style={style}
+      preserveAspectRatio="xMidYMid meet"
     >
-      <svg
-        width="34"
-        height="24"
-        viewBox="0 0 34 24"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path
-          d="M1.75013 15.7179H6.50407C6.41163 14.8464 6.18714 13.9352 5.87021 13.024H1.75013C1.1823 13.024 0.70691 12.5618 0.70691 11.994C0.70691 11.4262 1.1823 10.9376 1.75013 10.9376H5.09109C4.81378 10.0264 4.62891 9.12844 4.53647 8.24368H1.75013C1.19551 8.24368 0.70691 7.7815 0.70691 7.20046C0.70691 6.63263 1.1823 6.15723 1.75013 6.15723H4.52326C4.69493 4.13681 5.46084 2.35409 6.78138 1.12599C7.90384 0.109172 9.31681 1.54856 8.22077 2.60499C7.37562 3.47654 6.87382 4.71785 6.72856 6.15723H11.5749C11.4297 6.83071 11.324 7.57021 11.2448 8.25689H6.75497C6.84741 9.12844 7.0587 10.0264 7.38883 10.9376H11.0863C11.0731 11.3205 11.0731 12.6411 11.0863 13.024H8.15474C8.44526 13.9352 8.63013 14.8332 8.70937 15.7179L11.2448 15.7311C11.3372 16.4046 11.4297 17.1045 11.5749 17.8176L8.72257 17.8044C8.5377 19.8248 7.77179 21.6075 6.46445 22.8356C5.3552 23.8524 3.92902 22.4131 5.01186 21.3566C5.87021 20.4851 6.38522 19.2438 6.53048 17.8044H1.75013C1.1823 17.8044 0.70691 17.3422 0.70691 16.7744C0.70691 16.2065 1.1823 15.7179 1.75013 15.7179ZM12.8162 11.9808C12.7898 9.57743 12.9879 7.25328 13.6482 4.87631C14.4273 2.27485 15.9063 1.33727 18.9699 1.33727H19.6698C27.1573 1.33727 33.7996 6.23647 33.7996 11.9808C33.7996 17.7251 27.1573 22.6111 19.6698 22.6111H18.9699C15.8931 22.6111 14.4141 21.6868 13.6482 19.0853C12.9879 16.7083 12.7898 14.3842 12.8162 11.9808ZM14.9423 11.9808C14.9291 14.6615 15.1536 16.5895 15.695 18.4911C16.1308 19.9436 17.0023 20.4983 18.9699 20.4983H19.6698C25.9292 20.4983 31.6735 16.5102 31.6735 11.9808C31.6735 7.45136 25.9292 3.45013 19.6698 3.45013H18.9699C17.0288 3.45013 16.144 3.99155 15.695 5.47055C15.1536 7.37213 14.9291 9.30011 14.9423 11.9808Z"
-          fill={isOn ? "lime" : "white"}
-        />
-      </svg>
-    </div>
+      <path
+        d="M1.75013 15.7179H6.50407C6.41163 14.8464 6.18714 13.9352 5.87021 13.024H1.75013C1.1823 13.024 0.70691 12.5618 0.70691 11.994C0.70691 11.4262 1.1823 10.9376 1.75013 10.9376H5.09109C4.81378 10.0264 4.62891 9.12844 4.53647 8.24368H1.75013C1.19551 8.24368 0.70691 7.7815 0.70691 7.20046C0.70691 6.63263 1.1823 6.15723 1.75013 6.15723H4.52326C4.69493 4.13681 5.46084 2.35409 6.78138 1.12599C7.90384 0.109172 9.31681 1.54856 8.22077 2.60499C7.37562 3.47654 6.87382 4.71785 6.72856 6.15723H11.5749C11.4297 6.83071 11.324 7.57021 11.2448 8.25689H6.75497C6.84741 9.12844 7.0587 10.0264 7.38883 10.9376H11.0863C11.0731 11.3205 11.0731 12.6411 11.0863 13.024H8.15474C8.44526 13.9352 8.63013 14.8332 8.70937 15.7179L11.2448 15.7311C11.3372 16.4046 11.4297 17.1045 11.5749 17.8176L8.72257 17.8044C8.5377 19.8248 7.77179 21.6075 6.46445 22.8356C5.3552 23.8524 3.92902 22.4131 5.01186 21.3566C5.87021 20.4851 6.38522 19.2438 6.53048 17.8044H1.75013C1.1823 17.8044 0.70691 17.3422 0.70691 16.7744C0.70691 16.2065 1.1823 15.7179 1.75013 15.7179ZM12.8162 11.9808C12.7898 9.57743 12.9879 7.25328 13.6482 4.87631C14.4273 2.27485 15.9063 1.33727 18.9699 1.33727H19.6698C27.1573 1.33727 33.7996 6.23647 33.7996 11.9808C33.7996 17.7251 27.1573 22.6111 19.6698 22.6111H18.9699C15.8931 22.6111 14.4141 21.6868 13.6482 19.0853C12.9879 16.7083 12.7898 14.3842 12.8162 11.9808ZM14.9423 11.9808C14.9291 14.6615 15.1536 16.5895 15.695 18.4911C16.1308 19.9436 17.0023 20.4983 18.9699 20.4983H19.6698C25.9292 20.4983 31.6735 16.5102 31.6735 11.9808C31.6735 7.45136 25.9292 3.45013 19.6698 3.45013H18.9699C17.0288 3.45013 16.144 3.99155 15.695 5.47055C15.1536 7.37213 14.9291 9.30011 14.9423 11.9808Z"
+        fill={isOn ? "lime" : "white"}
+      />
+    </svg>
   );
 }

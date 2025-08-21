@@ -1,77 +1,41 @@
-import { useEffect, useRef, useState } from "react";
+// src/components/TextLabel.tsx
+import React from "react";
 
-export default function TextLabel() {
-  const [position, setPosition] = useState(() => {
-    const saved = localStorage.getItem("text_label_position");
-    return saved ? JSON.parse(saved) : { x: 100, y: 100 };
-  });
+type Props = {
+  /** Contenu du libellé */
+  text?: string;
+  className?: string;
+  style?: React.CSSProperties;
 
-  const dragging = useRef(false);
-  const offset = useRef({ x: 0, y: 0 });
-  const grid = 5;
-  const ref = useRef<HTMLDivElement>(null);
+  /** Style texte */
+  color?: string;                          // défaut: blanc
+  fontSize?: number | string;              // défaut: 18
+  fontWeight?: React.CSSProperties["fontWeight"]; // défaut: "bold"
+  align?: "left" | "center" | "right";     // défaut: "left"
+};
 
-  const handleStart = (e: React.MouseEvent | React.TouchEvent) => {
-    const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
-    const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
-
-    offset.current = {
-      x: clientX - position.x,
-      y: clientY - position.y,
-    };
-
-    dragging.current = true;
-  };
-
-  const handleMove = (e: MouseEvent | TouchEvent) => {
-    if (!dragging.current) return;
-    const clientX = "touches" in e ? (e as TouchEvent).touches[0].clientX : (e as MouseEvent).clientX;
-    const clientY = "touches" in e ? (e as TouchEvent).touches[0].clientY : (e as MouseEvent).clientY;
-
-    const snappedX = Math.round((clientX - offset.current.x) / grid) * grid;
-    const snappedY = Math.round((clientY - offset.current.y) / grid) * grid;
-    setPosition({ x: snappedX, y: snappedY });
-  };
-
-  const handleEnd = () => {
-    dragging.current = false;
-  };
-
-  useEffect(() => {
-    localStorage.setItem("text_label_position", JSON.stringify(position));
-  }, [position]);
-
-  useEffect(() => {
-    window.addEventListener("mousemove", handleMove);
-    window.addEventListener("mouseup", handleEnd);
-    window.addEventListener("touchmove", handleMove);
-    window.addEventListener("touchend", handleEnd);
-    return () => {
-      window.removeEventListener("mousemove", handleMove);
-      window.removeEventListener("mouseup", handleEnd);
-      window.removeEventListener("touchmove", handleMove);
-      window.removeEventListener("touchend", handleEnd);
-    };
-  }, []);
-
+export default function TextLabel({
+  text = "x  1000  tr/min",
+  className = "",
+  style,
+  color = "#FFFFFF",
+  fontSize = 18,
+  fontWeight = "bold",
+  align = "left",
+}: Props) {
   return (
     <div
-      ref={ref}
+      className={className}
       style={{
-        position: "absolute",
-        top: position.y,
-        left: position.x,
-        zIndex: 50,
-        cursor: "grab",
-        touchAction: "none",
-        color: "white",
-        fontSize: "18px",
-        fontWeight: "bold",
+        color,
+        fontSize,
+        fontWeight,
+        textAlign: align,
+        userSelect: "none",
+        ...style,
       }}
-      onMouseDown={handleStart}
-      onTouchStart={handleStart}
     >
-         x  1000  tr/min 
+      {text}
     </div>
   );
 }
