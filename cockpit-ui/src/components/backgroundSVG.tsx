@@ -1,15 +1,31 @@
 // src/components/BackgroundSVG.tsx
-// ✅ SVG de fond cockpit ajusté pour écran Full HD (1920x1080), centré
-export function BackgroundSVG() {
+import { useStage } from "../lib/DragSystem";
+
+/**
+ * Fond cockpit.
+ * - S'étire exactement sur la surface de la stage (baseWidth x baseHeight)
+ * - L’alignement/centrage est géré par ResponsiveStage (pas d’absolu/transform ici)
+ * - Aucune interaction (pointer-events: none)
+ */
+export default function BackgroundSVG() {
+  const { baseWidth, baseHeight } = useStage();
+
   return (
-    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[1366px] h-[768px] -z-10 pointer-events-none">
+    <div
+      style={{
+        width: baseWidth,
+        height: baseHeight,
+        pointerEvents: "none",
+      }}
+    >
       <svg
         viewBox="0 0 1575 650"
         xmlns="http://www.w3.org/2000/svg"
         preserveAspectRatio="xMidYMid meet"
-        className="w-full h-full"
+        width="100%"
+        height="100%"
       >
-        {/* ⬇️ Ombre portée sur le fond */}
+        {/* Ombre portée sur le fond */}
         <g filter="url(#filter0_d_1144_882)">
           <path
             d="M474.126 51.6048C452.167 24.8451 380.354 10.5266 208.415 100.512C-46.8423 234.101 -20.7205 613.305 334.991 602.786C493.359 598.103 610.536 568.794 688.887 544.343C764.948 520.607 840.995 522.923 916.498 548.375C986.32 571.912 1090.51 598.358 1240.25 602.786C1595.96 613.305 1622.08 234.101 1366.83 100.512C1194.89 10.5266 1123.08 24.8451 1101.12 51.6048C1094.65 59.487 1086.26 67.3772 1076.06 67.3772H499.177C488.981 67.3772 480.594 59.487 474.126 51.6048Z"
@@ -22,7 +38,6 @@ export function BackgroundSVG() {
           />
         </g>
 
-        {/* ⬇️ Définition de l’ombre et du dégradé */}
         <defs>
           <filter
             id="filter0_d_1144_882"
@@ -47,17 +62,8 @@ export function BackgroundSVG() {
               type="matrix"
               values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.44 0"
             />
-            <feBlend
-              mode="normal"
-              in2="BackgroundImageFix"
-              result="effect1_dropShadow_1144_882"
-            />
-            <feBlend
-              mode="normal"
-              in="SourceGraphic"
-              in2="effect1_dropShadow_1144_882"
-              result="shape"
-            />
+            <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1144_882" />
+            <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1144_882" result="shape" />
           </filter>
 
           <linearGradient
@@ -78,3 +84,4 @@ export function BackgroundSVG() {
     </div>
   );
 }
+9

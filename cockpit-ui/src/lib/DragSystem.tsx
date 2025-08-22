@@ -6,7 +6,7 @@ import { useDragMode } from "../DragContext";
  * - Centre la scène
  */
 type StageCtx = { scale: number; baseWidth: number; baseHeight: number };
-const StageContext = createContext<StageCtx>({ scale: 1, baseWidth: 1366, baseHeight: 768 });
+const StageContext = createContext<StageCtx>({ scale: 1, baseWidth: 1920, baseHeight: 1080 });
 export function useStage() { return useContext(StageContext); }
 
 type ResponsiveStageProps = {
@@ -14,12 +14,20 @@ type ResponsiveStageProps = {
   baseHeight?: number;
   className?: string;
   children: React.ReactNode;
+    /** ‘contain’ (par défaut) garde tout visible, ‘cover’ remplit tout l’écran */
+  fit?: "contain" | "cover";
+  /** Limiter l’upscaling si tu veux éviter que ça grossisse au-delà du 1:1 */
+  maxScale?: number; // ex: 1
+  minScale?: number; // ex: 0.5
 };
 export function ResponsiveStage({
-  baseWidth = 1366,
-  baseHeight = 768,
+  baseWidth = 1920,
+  baseHeight = 1080,
   className = "",
   children,
+  fit = "contain",
+  maxScale = Infinity,
+  minScale = 0,
 }: ResponsiveStageProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
@@ -31,13 +39,14 @@ export function ResponsiveStage({
       if (!el || !parent) return;
       const sx = parent.clientWidth / baseWidth;
       const sy = parent.clientHeight / baseHeight;
-      setScale(Math.min(sx, sy));
+      const raw = fit === "cover" ? Math.max(sx, sy) : Math.min(sx, sy);
+      const clamped = Math.max(minScale, Math.min(raw, maxScale));
+      setScale(clamped);
     };
     update();
-    const onResize = () => update();
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, [baseWidth, baseHeight]);
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, [baseWidth, baseHeight, fit, maxScale, minScale]);
 
   return (
     <StageContext.Provider value={{ scale, baseWidth, baseHeight }}>

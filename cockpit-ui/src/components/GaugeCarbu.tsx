@@ -1,5 +1,5 @@
 // src/components/GaugeCarbu.tsx
-import React from "react";
+import React, { useEffect, useId, useMemo, useState } from "react";
 import { useWS } from "../WebSocketProvider";
 
 type Props = {
@@ -7,15 +7,28 @@ type Props = {
   height?: number;
   className?: string;
   style?: React.CSSProperties;
-  /** tension min/max pour le calcul du pourcentage */
+
   minV?: number;
   maxV?: number;
-  /** sens du remplissage: true = gauche→droite (horaire), false = droite→gauche */
+
+  /** true = gauche→droite visuellement, false = droite→gauche */
   sensHoraire?: boolean;
-  /** afficher le pourcentage au centre */
-  showPercent?: boolean;
-  /** miroir horizontal du tracé (utile si ton asset est inversé dans le layout) */
+
+  /** miroir horizontal (si asset inversé dans le layout) */
   flipHorizontally?: boolean;
+
+  showPercent?: boolean;
+
+  strokeWidth?: number;
+  backgroundStroke?: string;
+
+  lowColor?: string;   // < seuil (et clignote si activé)
+  midColor?: string;
+  highColor?: string;
+
+  blinkWhenLow?: boolean;
+  lowThresholdPct?: number; // 0–100
+  blinkMs?: number;
 };
 
 export default function GaugeCarbu({
@@ -23,25 +36,68 @@ export default function GaugeCarbu({
   height = 71,
   className = "",
   style,
+
   minV = 0,
   maxV = 3.3,
+
   sensHoraire = true,
-  showPercent = true,
   flipHorizontally = true,
+  showPercent = true,
+
+  strokeWidth = 10.3191,
+  backgroundStroke = "#333",
+
+  lowColor = "#ff3b30",
+  midColor = "#ffcc00",
+  highColor = "#32d74b",
+
+  blinkWhenLow = true,
+  lowThresholdPct = 10,
+  blinkMs = 700,
 }: Props) {
   const wsData = useWS();
   const voltage = Number(wsData?.niveau_carbu ?? 0);
 
-  // Clamp + pourcentage
-  const clamped = Math.min(Math.max(voltage, minV), maxV);
-  const pct = Math.round(((clamped - minV) / Math.max(1e-6, maxV - minV)) * 100);
+  // % sécurisé
+  const span = Math.max(1e-6, maxV - minV);
+  const pct = Math.round(((Math.min(Math.max(voltage, minV), maxV) - minV) / span) * 100);
 
-  // dashOffset sur base pathLength=100 (plus robuste que "350" en dur)
+  // dashOffset (0 = plein; 100 = vide)
   const dashOffset = sensHoraire ? 100 - pct : pct;
 
-  // Tracé partagé
+  // Tracé
   const dPath =
     "M290.361 5.36102C242.122 54.841 175.481 73.9407 113.035 62.6602C73.7762 55.5682 36.1755 36.4685 5.84824 5.36102";
+
+  // Le sens visuel du remplissage (gauche→droite ?) = XOR entre sensHoraire et flip
+  const leftToRight = sensHoraire !== flipHorizontally;
+
+  const gradId = useId();
+
+  // Blink bas niveau
+  const isLow = pct <= lowThresholdPct;
+  const [blinkOn, setBlinkOn] = useState(true);
+  useEffect(() => {
+    if (!(blinkWhenLow && isLow)) {
+      setBlinkOn(true);
+      return;
+    }
+    const t = setInterval(() => setBlinkOn(v => !v), Math.max(200, blinkMs / 2));
+    return () => clearInterval(t);
+  }, [blinkWhenLow, isLow, blinkMs]);
+
+  const progressStroke = isLow ? lowColor : `url(#grad-${gradId})`;
+  const progressOpacity = isLow && blinkWhenLow ? (blinkOn ? 1 : 0.25) : 1;
+
+  const stops = useMemo(
+    () => [
+      { offset: "0%", color: lowColor },
+      { offset: "10%", color: lowColor },
+      { offset: "25%", color: midColor },
+      { offset: "100%", color: highColor }, // ✅ vert à 100%
+    ],
+    [lowColor, midColor, highColor]
+  );
 
   return (
     <svg
@@ -55,22 +111,28 @@ export default function GaugeCarbu({
       preserveAspectRatio="xMidYMid meet"
     >
       <defs>
-        {/* Dégradé dynamique de rouge (0%) à vert (100%) */}
-        <linearGradient id="carbuGradient" x1="0" y1="0" x2="1" y2="0" gradientUnits="objectBoundingBox">
-          <stop offset="0%" stopColor="red" />
-          <stop offset="10%" stopColor="red" />
-          <stop offset="25%" stopColor="yellow" />
-          <stop offset="100%" stopColor="limegreen" />
+        {/* On inverse la direction du gradient en jouant sur x1/x2 */}
+        <linearGradient
+          id={`grad-${gradId}`}
+          x1={leftToRight ? "0" : "1"}
+          y1="0"
+          x2={leftToRight ? "1" : "0"}
+          y2="0"
+          gradientUnits="objectBoundingBox"
+        >
+          {stops.map((s, i) => (
+            <stop key={i} offset={s.offset} stopColor={s.color} />
+          ))}
         </linearGradient>
       </defs>
 
-      {/* Groupe optionnel pour miroiter correctement (le transform sur <svg> n'est pas pris en compte) */}
+      {/* Miroir si nécessaire */}
       <g transform={flipHorizontally ? "scale(-1,1) translate(-296,0)" : undefined}>
         {/* Fond neutre */}
         <path
           d={dPath}
-          stroke="#333"
-          strokeWidth="10.3191"
+          stroke={backgroundStroke}
+          strokeWidth={strokeWidth}
           strokeLinecap="round"
           pathLength={100}
         />
@@ -78,8 +140,9 @@ export default function GaugeCarbu({
         {/* Progression */}
         <path
           d={dPath}
-          stroke="url(#carbuGradient)"
-          strokeWidth="10.3191"
+          stroke={progressStroke}
+          strokeOpacity={progressOpacity}
+          strokeWidth={strokeWidth}
           strokeLinecap="round"
           pathLength={100}
           strokeDasharray={100}
@@ -87,7 +150,6 @@ export default function GaugeCarbu({
         />
       </g>
 
-      {/* Libellés & pourcentage (dans le SVG, pas en <div> absolument positionné) */}
       {showPercent && (
         <text
           x="50%"

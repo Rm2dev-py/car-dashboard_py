@@ -1,7 +1,7 @@
 {
   "_meta": {
-    "baseWidth": 2560,
-    "baseHeight": 1440,
+    "baseWidth": 1920,
+    "baseHeight": 1080,
     "version": 1
   },
   "background": { "component": "BackgroundSVG", "x": 0, "y": 0, "zIndex": 0, "grid": 0, "visible": true, "locked": true },

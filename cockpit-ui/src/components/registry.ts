@@ -1,5 +1,5 @@
 // src/components/registry.ts
-import type { ComponentType, FC } from "react";
+import type { ComponentType, } from "react";
 
 // Voyants & icônes
 import FeuxCode from "./FeuxCode";
@@ -12,6 +12,7 @@ import FeuxAntibrouillardArriere from "./FeuxAntibrouillardArriere";
 import VoyantCeinture from "./Ceinture";
 import IconPetrole from "./IconPetrole";
 import Oil from "./Oil";
+import GaugeCarbu from "./GaugeCarbu";
 
 // Cadrans / gauges / décor
 import CadranVitesse from "./CadranVitesse";
@@ -22,8 +23,9 @@ import TextLabel from "./TextLabel";
 import RpmDyn from "./RpmDyn";
 import VueGenerale from "./Cadran_cpt";
 
+
 // Fond (export nommé dans backgroundSVG.tsx)
-import {  BackgroundSVG } from "./backgroundSVG";
+import BackgroundSVG from "./backgroundSVG";
 
 export type Registry = Record<string, React.ComponentType<any>>;
 
@@ -45,6 +47,7 @@ export const COMPONENTS: Record<string, ComponentType<any>> = {
   VoyantCeinture,
   IconPetrole,
   Oil,
+  GaugeCarbu,
 
   // Cadrans / gauges / décor
   CadranVitesse,

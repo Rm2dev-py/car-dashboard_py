@@ -30,8 +30,8 @@ export default function Cockpit() {
     })();
   }, []);
 
-  const baseW = layout._meta?.baseWidth ?? 1366;
-  const baseH = layout._meta?.baseHeight ?? 768;
+  const baseW = layout._meta?.baseWidth ?? 1920;
+  const baseH = layout._meta?.baseHeight ?? 1080;
 
   // Background (non draggable si locked)
   const BgComp =
@@ -39,8 +39,8 @@ export default function Cockpit() {
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-black text-white">
-      <ResponsiveStage baseWidth={baseW} baseHeight={baseH}>
-        {/* Background */}
+      <ResponsiveStage baseWidth={baseW} baseHeight={baseH} /* fit="contain" maxScale={1} si tu veux */>
+        {/* Background + items positionnés en coords 1920×1080 */}
         {BgComp &&
           (layout.background?.locked ? (
             <div
