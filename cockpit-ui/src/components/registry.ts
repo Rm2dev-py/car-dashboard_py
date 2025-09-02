@@ -22,12 +22,13 @@ import EllipseCpt from "./EllipseCpt";
 import TextLabel from "./TextLabel";
 import RpmDyn from "./RpmDyn";
 import VueGenerale from "./Cadran_cpt";
-
+import EllipseVit from "./EllipseVit";
+import Text from "./Text";
 
 // Fond (export nommé dans backgroundSVG.tsx)
 import BackgroundSVG from "./backgroundSVG";
 
-export type Registry = Record<string, React.ComponentType<any>>;
+export type Registry = Record<string, ComponentType<any>>;
 
 // ⚠️ Si certains imports ci-dessus n’existent pas encore dans ton repo,
 // commente-les TEMPORAIREMENT pour laisser compiler, ou crée des stubs.
@@ -56,5 +57,7 @@ export const COMPONENTS: Record<string, ComponentType<any>> = {
   EllipseCpt,
   TextLabel,
   RpmDyn,
-  VueGenerale
+  VueGenerale,
+  EllipseVit,
+  Text,
 };

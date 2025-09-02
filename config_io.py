@@ -10,7 +10,7 @@ TOR_ENTREES = {
     "feux_code": 6,           # GPIO6  - Pin 31
     "feux_route": 13,         # GPIO13 - Pin 33
     "essuie_glace": 19,       # GPIO19 - Pin 35
-    "klaxon": 26,             # GPIO26 - Pin 37
+    "Oil": 26,                # GPIO26 - Pin 37
     "marche_arriere": 21,     # GPIO21 - Pin 40
     "ceinture": 9,            # GPIO9  - Pin 21
     "antibrouillard": 11,     # GPIO11 - Pin 23
@@ -62,6 +62,7 @@ ETATS_SIMULES_INITIAUX = {
     "voyant_ceinture": 0,
     "voyant_antibrouillard": 0,
     "voyant_antibrouillard_arr": 0,
+    "voyant_oil": 0,
 
     # Entrées analogiques
     "temp_moteur": 0,

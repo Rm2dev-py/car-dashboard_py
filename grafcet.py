@@ -12,7 +12,7 @@ ASSOCIATIONS_IO = {
     "warning": "voyant_warning",
     "feux_code": "voyant_code",
     "feux_route": "voyant_pleinphare",
-    "klaxon": "buzzer",
+    "Oil": "voyant_oil",
     "essuie_glace": "voyant_temp",
     "marche_arriere": "voyant_batterie",
     "ceinture": "voyant_ceinture",

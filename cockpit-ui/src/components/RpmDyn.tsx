@@ -39,7 +39,7 @@ export default function RpmDyn({
   fontWeight = "bold",
   textAlign = "center",
   format,
-  title = "Régime moteur",
+  //title = "Régime moteur",
 }: Props) {
   const wsData = useWS();
   const voltage = wsData?.rpm_moteur ?? 0; // 0–3.3V
@@ -70,10 +70,10 @@ export default function RpmDyn({
   return (
     <div
       role="text"
-      aria-label={title}
+      //aria-label={title}
       className={className}
       style={mergedStyle}
-      title={title}
+      //title={title}
     >
       {format ? format(raw, displayText) : displayText}
     </div>

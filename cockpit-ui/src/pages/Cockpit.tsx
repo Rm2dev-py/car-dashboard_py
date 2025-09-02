@@ -11,6 +11,7 @@ type ItemCfg = {
   grid?: number;
   visible?: boolean;
   locked?: boolean;
+  props?: Record<string, any>;
 };
 
 type LayoutSchema = {
@@ -85,7 +86,7 @@ export default function Cockpit() {
                   zIndex: cfg.zIndex ?? 20,
                 }}
               >
-                <Comp />
+                <Comp {...(cfg.props || {})} />
               </div>
             );
           }
@@ -98,7 +99,7 @@ export default function Cockpit() {
               grid={cfg.grid ?? 5}
               zIndex={cfg.zIndex ?? 20}
             >
-              <Comp />
+              <Comp {...(cfg.props || {})} />
             </Draggable>
           );
         })}
