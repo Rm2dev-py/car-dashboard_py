@@ -17,8 +17,8 @@ ASSOCIATIONS_IO = {
     "marche_arriere": "voyant_batterie",
     "ceinture": "voyant_ceinture",
     "antibrouillard": "voyant_antibrouillard",
-    "antibrouillardarr": "voyant_antibrouillard_arr"
-
+    "antibrouillardarr": "voyant_antibrouillard_arr",
+    "temp_moteur": "gauge_temp"
 }
 
 def evaluate_grafcet():

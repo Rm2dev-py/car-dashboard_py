@@ -1,5 +1,5 @@
 // src/components/registry.ts
-import type { ComponentType, } from "react";
+import type { ComponentType } from "react";
 
 // Voyants & icônes
 import FeuxCode from "./FeuxCode";
@@ -25,13 +25,13 @@ import VueGenerale from "./Cadran_cpt";
 import EllipseVit from "./EllipseVit";
 import Text from "./Text";
 
-// Fond (export nommé dans backgroundSVG.tsx)
+// Fond
 import BackgroundSVG from "./backgroundSVG";
 
-export type Registry = Record<string, ComponentType<any>>;
+// 🆕 Ajoute ton composant GPS
+import GpsMap from "./GpsMap";
 
-// ⚠️ Si certains imports ci-dessus n’existent pas encore dans ton repo,
-// commente-les TEMPORAIREMENT pour laisser compiler, ou crée des stubs.
+export type Registry = Record<string, ComponentType<any>>;
 
 export const COMPONENTS: Record<string, ComponentType<any>> = {
   // Fond
@@ -60,4 +60,7 @@ export const COMPONENTS: Record<string, ComponentType<any>> = {
   VueGenerale,
   EllipseVit,
   Text,
+
+  // 🆕 GPS
+  GpsMap,
 };

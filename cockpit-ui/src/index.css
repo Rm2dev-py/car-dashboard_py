@@ -74,3 +74,55 @@ button:focus-visible {
   }
 
 }
+
+/* ===== Leaflet Dark Mode (scopé) ===== 
+.map-dark .leaflet-tile,
+.map-dark .leaflet-control-zoom-in,
+.map-dark .leaflet-control-zoom-out,
+.map-dark .leaflet-control-attribution {
+  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+}
+*/
+/* Ne pas inverser les marqueurs/icônes */
+.map-dark .leaflet-marker-icon,
+.map-dark .leaflet-marker-shadow,
+.map-dark .leaflet-div-icon {
+  filter: none !important;
+}
+
+/* Popups lisibles en dark */
+.map-dark .leaflet-popup-content-wrapper,
+.map-dark .leaflet-popup-tip {
+  background: #111827;            /* gris très foncé */
+  color: #e5e7eb;                  /* texte clair */
+  border: 1px solid #374151;       /* bord discret */
+}
+.map-dark .leaflet-popup-content { color: #e5e7eb; }
+.map-dark .leaflet-control-attribution {
+  background: transparent !important;
+  color: #9ca3af !important;
+}
+/* === Leaflet: anti-joints entre tuiles (Chrome/Edge) === */
+.leaflet-container {
+  /* Ne PAS fixer de background ici, pour éviter les coutures en Light */
+  -webkit-transform: translateZ(0);
+          transform: translateZ(0);
+}
+
+.leaflet-container .leaflet-pane,
+.leaflet-container .leaflet-layer {
+  -webkit-transform: translateZ(0);
+          transform: translateZ(0);
+  will-change: transform;
+}
+
+.leaflet-container .leaflet-tile {
+  outline: 1px solid transparent;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border: 0;
+}
+
+/* Skins de fond SCOPEES par classe sur MapContainer */
+.leaflet-skin-dark { background: #000; }
+.leaflet-skin-light { background: #f6f6f6; } /* proche du fond Carto Light */

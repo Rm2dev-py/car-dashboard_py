@@ -1,6 +1,5 @@
 // src/pages/TestConfig.tsx
 import SliderRpm from "../components/SliderRpm";
-
 import CarSimu from "../components/CarSimu";
 import VitSimu from "../components/VitSimu";
 import ToggleDragButton from "../components/ToggleDragButton";

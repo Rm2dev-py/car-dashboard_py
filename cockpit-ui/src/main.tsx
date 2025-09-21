@@ -1,9 +1,10 @@
 // src/main.tsx
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { HashRouter } from "react-router-dom"; // ⬅️ change ici
+import { HashRouter } from "react-router-dom";
 import App from "./App";
 import "./index.css";
+import "leaflet/dist/leaflet.css"; // pour la carte
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

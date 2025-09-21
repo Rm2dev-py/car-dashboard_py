@@ -1,28 +1,39 @@
-import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+// src/lib/DragSystem.tsx
+import React, {
+  createContext, useContext, useEffect, useMemo, useRef, useState, useCallback,
+} from "react";
 import { useDragMode } from "../DragContext";
 
-/** ===== ResponsiveStage =====
- * - Scale proportionnel d'une surface (baseWidth x baseHeight)
- * - Centre la scène
- */
+/* ============================
+   Stage (Responsive + Scale)
+   ============================ */
+
 type StageCtx = { scale: number; baseWidth: number; baseHeight: number };
-const StageContext = createContext<StageCtx>({ scale: 1, baseWidth: 1920, baseHeight: 1080 });
-export function useStage() { return useContext(StageContext); }
+const StageContext = createContext<StageCtx>({
+  scale: 1,
+  baseWidth: 1920,    // Figma par défaut
+  baseHeight: 1080,    // Figma par défaut
+});
+
+export function useStage() {
+  return useContext(StageContext);
+}
 
 type ResponsiveStageProps = {
-  baseWidth?: number;
-  baseHeight?: number;
+  baseWidth?: number;        // défaut Figma
+  baseHeight?: number;       // défaut Figma
   className?: string;
   children: React.ReactNode;
-    /** ‘contain’ (par défaut) garde tout visible, ‘cover’ remplit tout l’écran */
+  /** ‘contain’ (par défaut) garde tout visible, ‘cover’ remplit tout l’écran */
   fit?: "contain" | "cover";
-  /** Limiter l’upscaling si tu veux éviter que ça grossisse au-delà du 1:1 */
+  /** Limiter l’upscaling si tu veux éviter > 1:1 */
   maxScale?: number; // ex: 1
   minScale?: number; // ex: 0.5
 };
+
 export function ResponsiveStage({
-  baseWidth = 1920,
-  baseHeight = 1080,
+  baseWidth = 1497.24,
+  baseHeight = 571.72,
   className = "",
   children,
   fit = "contain",
@@ -33,19 +44,23 @@ export function ResponsiveStage({
   const [scale, setScale] = useState(1);
 
   useEffect(() => {
-    const update = () => {
-      const el = containerRef.current;
-      const parent = el?.parentElement;
-      if (!el || !parent) return;
-      const sx = parent.clientWidth / baseWidth;
-      const sy = parent.clientHeight / baseHeight;
+    const el = containerRef.current?.parentElement;
+    if (!el) return;
+
+    const compute = () => {
+      const sx = el.clientWidth / baseWidth;
+      const sy = el.clientHeight / baseHeight;
       const raw = fit === "cover" ? Math.max(sx, sy) : Math.min(sx, sy);
       const clamped = Math.max(minScale, Math.min(raw, maxScale));
-      setScale(clamped);
+      setScale(clamped || 1);
     };
-    update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
+
+    compute();
+
+    // ResizeObserver > window.resize (plus fiable, parents flex etc.)
+    const ro = new ResizeObserver(compute);
+    ro.observe(el);
+    return () => ro.disconnect();
   }, [baseWidth, baseHeight, fit, maxScale, minScale]);
 
   return (
@@ -67,23 +82,29 @@ export function ResponsiveStage({
   );
 }
 
-/** ===== Draggable =====
- * - Drag (souris + touch)
- * - Snap au grid
- * - Persistance via localStorage (clé = id)
- * - Respecte dragEnabled (DragContext)
- * - Compatible avec scaling (ResponsiveStage)
- */
+/* ============================
+   Draggable
+   ============================ */
+
+type Pos = { x: number; y: number };
+
 type DraggableProps = {
-  id: string;
+  id: string;                         // clé de persistance (unique)
   children: React.ReactNode;
-  defaultPos?: { x: number; y: number };
-  grid?: number;
+  defaultPos?: Pos;                   // position par défaut (repère base)
+  grid?: number;                      // snap (px en repère base)
   zIndex?: number;
   className?: string;
   style?: React.CSSProperties;
   disabled?: boolean;
-  onChangePos?: (pos: { x: number; y: number }) => void;
+  /** Restreindre le drag dans la scène (0..baseWidth/baseHeight) */
+  boundsStage?: boolean;              // défaut: false
+  /** Option: selector d’une poignée : drag seulement quand on down sur cet élément */
+  handle?: string;                    // ex: ".header"
+  onChangePos?: (pos: Pos) => void;
+  onDragStart?: (pos: Pos) => void;
+  onDragMove?: (pos: Pos) => void;
+  onDragEnd?: (pos: Pos) => void;
 };
 
 export function Draggable({
@@ -95,23 +116,46 @@ export function Draggable({
   className = "",
   style = {},
   disabled = false,
+  boundsStage = false,
+  handle,
   onChangePos,
+  onDragStart,
+  onDragMove,
+  onDragEnd,
 }: DraggableProps) {
   const { dragEnabled } = useDragMode();
-  const { scale } = useStage();
+  const { scale, baseWidth, baseHeight } = useStage();
   const storageKey = `pos_${id}`;
 
-  const [pos, setPos] = useState<{ x: number; y: number }>(() => {
+  const [pos, setPos] = useState<Pos>(() => {
     const saved = localStorage.getItem(storageKey);
     return saved ? JSON.parse(saved) : defaultPos;
   });
 
+  // refs pour éviter les fermetures sur pos/scale pendant le drag
+  const posRef = useRef(pos);
+  const scaleRef = useRef(scale);
+  useEffect(() => { posRef.current = pos; }, [pos]);
+  useEffect(() => { scaleRef.current = scale; }, [scale]);
+
+  const canDrag = dragEnabled && !disabled;
   const dragging = useRef(false);
   const offset = useRef({ dx: 0, dy: 0 });
-  const canDrag = dragEnabled && !disabled;
 
   const snap = (v: number) => Math.round(v / grid) * grid;
-  const save = (p: { x: number; y: number }) => {
+
+  const clampToStage = (p: Pos): Pos => {
+    if (!boundsStage) return p;
+    const w = baseWidth;
+    const h = baseHeight;
+    // Ici on ne connaît pas la taille du child, on clamp juste le point d’ancrage.
+    return {
+      x: Math.max(0, Math.min(p.x, w)),
+      y: Math.max(0, Math.min(p.y, h)),
+    };
+  };
+
+  const save = (p: Pos) => {
     localStorage.setItem(storageKey, JSON.stringify(p));
     onChangePos?.(p);
   };
@@ -126,50 +170,84 @@ export function Draggable({
     return { cx, cy };
   };
 
-  const handleStart = (e: React.MouseEvent | React.TouchEvent) => {
-    if (!canDrag) return;
-    e.stopPropagation();
-    e.preventDefault();
-    const { cx, cy } = getClientXY(e);
-    // stocker l'écart dans l'espace scalé pour des coords correctes
-    offset.current = { dx: cx - pos.x * scale, dy: cy - pos.y * scale };
-    dragging.current = true;
-    // positionner dès le premier press
-    const x = (cx - offset.current.dx) / scale;
-    const y = (cy - offset.current.dy) / scale;
-    setPos({ x: snap(x), y: snap(y) });
+  const isHandleHit = (evtTarget: EventTarget | null, root: HTMLElement): boolean => {
+    if (!handle) return true;
+    if (!(evtTarget instanceof Element)) return false;
+    // drag autorisé si le target ou l’un de ses parents match le sélecteur
+    return !!evtTarget.closest(handle) && root.contains(evtTarget.closest(handle));
   };
 
-  useEffect(() => {
+  const startListeners = useCallback(() => {
     const onMove = (ev: MouseEvent | TouchEvent) => {
       if (!dragging.current || !canDrag) return;
-      // @ts-ignore
-      const t = ev.touches?.[0] ?? ev.changedTouches?.[0];
-      const cx = t ? t.clientX : (ev as MouseEvent).clientX;
-      const cy = t ? t.clientY : (ev as MouseEvent).clientY;
-      const x = (cx - offset.current.dx) / scale;
-      const y = (cy - offset.current.dy) / scale;
-      setPos({ x: snap(x), y: snap(y) });
+      const { clientX, clientY } =
+        "touches" in ev
+          ? { clientX: (ev as TouchEvent).touches[0]?.clientX ?? 0, clientY: (ev as TouchEvent).touches[0]?.clientY ?? 0 }
+          : { clientX: (ev as MouseEvent).clientX, clientY: (ev as MouseEvent).clientY };
+
+      const sc = scaleRef.current;
+      const x = (clientX - offset.current.dx) / sc;
+      const y = (clientY - offset.current.dy) / sc;
+
+      const next = clampToStage({ x: snap(x), y: snap(y) });
+      setPos(next);
+      onDragMove?.(next);
     };
+
     const onEnd = () => {
       if (!dragging.current) return;
       dragging.current = false;
-      save(pos);
+      const p = posRef.current;
+      save(p);
+      onDragEnd?.(p);
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onEnd);
+      document.removeEventListener("touchmove", onMove as any);
+      document.removeEventListener("touchend", onEnd);
+      document.removeEventListener("touchcancel", onEnd);
     };
 
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onEnd);
-    window.addEventListener("touchmove", onMove, { passive: false });
-    window.addEventListener("touchend", onEnd);
-    window.addEventListener("touchcancel", onEnd);
-    return () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onEnd);
-      window.removeEventListener("touchmove", onMove);
-      window.removeEventListener("touchend", onEnd);
-      window.removeEventListener("touchcancel", onEnd);
-    };
-  }, [canDrag, scale, pos.x, pos.y]); // pos dans deps pour sauver la dernière valeur
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onEnd);
+    document.addEventListener("touchmove", onMove as any, { passive: false });
+    document.addEventListener("touchend", onEnd);
+    document.addEventListener("touchcancel", onEnd);
+
+    return onEnd;
+  }, [canDrag, onDragEnd, onDragMove]); // scale/pos via refs
+
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  const handleStart = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!canDrag) return;
+
+    // Ignore bouton droit & ctrl/alt/meta (sélection, context menu…)
+    // @ts-ignore
+    if ("button" in e && e.button !== 0) return;
+
+    const root = rootRef.current!;
+    if (!isHandleHit(e.target, root)) return;
+
+    e.stopPropagation();
+    e.preventDefault();
+
+    const { cx, cy } = getClientXY(e);
+    const sc = scaleRef.current;
+    // offset dans l'espace *scalé* pour avoir des coords nettes
+    offset.current = { dx: cx - posRef.current.x * sc, dy: cy - posRef.current.y * sc };
+    dragging.current = true;
+
+    onDragStart?.(posRef.current);
+
+    // premier positionnement immédiat
+    const x = (cx - offset.current.dx) / sc;
+    const y = (cy - offset.current.dy) / sc;
+    const next = clampToStage({ x: snap(x), y: snap(y) });
+    setPos(next);
+
+    // attache les listeners jusqu’au end
+    startListeners();
+  };
 
   const mergedStyle: React.CSSProperties = useMemo(
     () => ({
@@ -186,6 +264,7 @@ export function Draggable({
 
   return (
     <div
+      ref={rootRef}
       className={className}
       style={mergedStyle}
       onMouseDown={canDrag ? handleStart : undefined}
