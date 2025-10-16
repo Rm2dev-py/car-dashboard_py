@@ -4,8 +4,8 @@ import { useDragMode } from "../DragContext";
 
 type Props = {
   className?: string;
-  style?: React.CSSProperties;
-  maxRPM?: number; // défaut: 8000
+  containerStyle?: React.CSSProperties; // ✅ renommé
+  maxRPM?: number; // défaut: 6000
   displayMode?: "k" | "raw"; // défaut: "k"
   decimals?: number; // défaut: 0
   rounding?: "floor" | "round" | "ceil"; // défaut: "floor"
@@ -13,6 +13,7 @@ type Props = {
   fontSize?: number | string; // défaut: 32
   fontWeight?: React.CSSProperties["fontWeight"]; // défaut: "bold"
   format?: (rpm: number, display: string) => React.ReactNode;
+  showText?: boolean; // défaut: false
 };
 
 export default function RpmDyn({
@@ -24,9 +25,12 @@ export default function RpmDyn({
   fontSize = 32,
   fontWeight = "bold",
   format,
+  showText = false,
+  className,
+  containerStyle, // ✅
 }: Props) {
   const wsData = useWS();
-  const voltage = wsData?.rpm_moteur ?? 0; // 0–3.3V
+  const voltage = Number(wsData?.rpm_moteur ?? 0); // 0–3.3V
   const raw = Math.max(0, Math.min(maxRPM, (voltage / 3.3) * maxRPM));
 
   // valeur pour l'affichage numérique
@@ -42,7 +46,7 @@ export default function RpmDyn({
   const angle = MIN_ANGLE + (raw / maxRPM) * (MAX_ANGLE - MIN_ANGLE);
 
   // position drag
-  const [position, setPosition] = useState(() => {
+  const [position, setPosition] = useState<{ x: number; y: number }>(() => {
     const saved = localStorage.getItem("rpm_dyn_position");
     return saved ? JSON.parse(saved) : { x: 600, y: 200 };
   });
@@ -51,25 +55,31 @@ export default function RpmDyn({
   const offset = useRef({ x: 0, y: 0 });
   const ref = useRef<HTMLDivElement>(null);
 
-  const handleStart = (e: React.MouseEvent | React.TouchEvent) => {
+  const handleStart = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
     dragging.current = true;
     const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
     const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
     offset.current = { x: clientX - position.x, y: clientY - position.y };
-    handleMove(e as any);
+    // amorce du mouvement
+    if ("nativeEvent" in e) {
+      const ne = e.nativeEvent as unknown as MouseEvent | TouchEvent;
+      handleMove(ne);
+    }
   };
+
   const handleMove = (e: MouseEvent | TouchEvent) => {
     if (!dragging.current) return;
-    const clientX =
-      "touches" in e ? (e as TouchEvent).touches[0].clientX : (e as MouseEvent).clientX;
-    const clientY =
-      "touches" in e ? (e as TouchEvent).touches[0].clientY : (e as MouseEvent).clientY;
+    const clientX = "touches" in e ? (e as TouchEvent).touches[0].clientX : (e as MouseEvent).clientX;
+    const clientY = "touches" in e ? (e as TouchEvent).touches[0].clientY : (e as MouseEvent).clientY;
     const grid = 5;
     const snappedX = Math.round((clientX - offset.current.x) / grid) * grid;
     const snappedY = Math.round((clientY - offset.current.y) / grid) * grid;
     setPosition({ x: snappedX, y: snappedY });
   };
-  const handleEnd = () => (dragging.current = false);
+
+  const handleEnd = () => {
+    dragging.current = false;
+  };
 
   useEffect(() => {
     localStorage.setItem("rpm_dyn_position", JSON.stringify(position));
@@ -78,7 +88,7 @@ export default function RpmDyn({
   useEffect(() => {
     window.addEventListener("mousemove", handleMove);
     window.addEventListener("mouseup", handleEnd);
-    window.addEventListener("touchmove", handleMove);
+    window.addEventListener("touchmove", handleMove, { passive: false });
     window.addEventListener("touchend", handleEnd);
     return () => {
       window.removeEventListener("mousemove", handleMove);
@@ -91,6 +101,7 @@ export default function RpmDyn({
   return (
     <div
       ref={ref}
+      className={className}
       style={{
         position: "absolute",
         top: position.y,
@@ -99,6 +110,7 @@ export default function RpmDyn({
         cursor: dragEnabled ? "grab" : "default",
         touchAction: "none",
         textAlign: "center",
+        ...(containerStyle || {}), // ✅ plus d'erreur TS
       }}
       onMouseDown={dragEnabled ? handleStart : undefined}
       onTouchStart={dragEnabled ? handleStart : undefined}
@@ -112,7 +124,8 @@ export default function RpmDyn({
         </g>
       </svg>
 
-      {/* Texte numérique */}
+      {/* Texte numérique — commenté par défaut */}
+      {/* 
       <div
         style={{
           color,
@@ -124,6 +137,22 @@ export default function RpmDyn({
       >
         {format ? format(raw, displayText) : displayText}
       </div>
+      */}
+
+      {/* Option d’activation sans décommenter */}
+      {showText && (
+        <div
+          style={{
+            color,
+            fontSize,
+            fontWeight,
+            userSelect: "none",
+            marginTop: -210,
+          }}
+        >
+          {format ? format(raw, displayText) : displayText}
+        </div>
+      )}
     </div>
   );
 }

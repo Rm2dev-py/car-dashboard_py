@@ -25,7 +25,8 @@ type Props = {
 // Valeurs par défaut
 const DEFAULT_WIDTH = 520;
 const DEFAULT_HEIGHT = 360;
-const DEFAULT_RADIUS = 18;
+// ⚠️ on neutralise l’arrondi par défaut
+const DEFAULT_RADIUS = 0;
 
 // (anim blink dispo si besoin ailleurs)
 (() => {
@@ -34,6 +35,21 @@ const DEFAULT_RADIUS = 18;
     const style = document.createElement("style");
     style.id = id;
     style.innerHTML = `@keyframes blink { from {opacity:1;} to {opacity:0.2;} }`;
+    document.head.appendChild(style);
+  }
+})();
+
+// Rendre Leaflet transparent + supprimer focus/cheveux, une seule fois
+(() => {
+  const id = "__leaflet_transparent__";
+  if (!document.getElementById(id)) {
+    const style = document.createElement("style");
+    style.id = id;
+    style.textContent = `
+      .leaflet-container { background: transparent !important; outline: none !important; }
+      .leaflet-container *:focus { outline: none !important; }
+      .leaflet-tile { border: 0 !important; box-shadow: none !important; }
+    `;
     document.head.appendChild(style);
   }
 })();
@@ -108,11 +124,12 @@ function useArrowIcon(headingDeg?: number | null, disconnected?: boolean, hasFix
 export default function GpsMap({
   widthPx = DEFAULT_WIDTH,
   heightPx = DEFAULT_HEIGHT,
+  // ⚠️ par défaut on rend tout invisible
   borderRadiusPx = DEFAULT_RADIUS,
-  borderWidthPx = 2,
-  borderColor = "rgba(255,255,255,0.25)",
-  borderStyle = "solid",
-  boxShadow = "0 0 16px rgba(0,0,0,0.6)",
+  borderWidthPx = 0,
+  borderColor = "transparent",
+  borderStyle = "none",
+  boxShadow = "none",
 }: Props) {
   const { pos, lastMsgAt } = useGpsData();
   const wsData = useWS();
@@ -138,13 +155,13 @@ export default function GpsMap({
     : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
   const tilesKey = darkOn ? "tiles-dark" : "tiles-light";
 
-  // Wrapper (pas de background ici → géré par classe sur MapContainer)
+  // Wrapper (garde ta structure, mais sans chrome)
   const wrapStyle: React.CSSProperties = {
     width: `${widthPx}px`,
     height: `${heightPx}px`,
     borderRadius: `${borderRadiusPx}px`,
     overflow: "hidden",
-    boxShadow,
+    boxShadow, // "none" par défaut
     border: borderStyle === "none" ? "none" : `${borderWidthPx}px ${borderStyle} ${borderColor}`,
   };
 
@@ -153,7 +170,7 @@ export default function GpsMap({
       <MapContainer
         center={[lat, lon]}
         zoom={18}
-        style={{ width: "100%", height: "100%" }}
+        style={{ width: "100%", height: "100%", background: "transparent", outline: "none" }}
         scrollWheelZoom
         zoomControl={false}
         attributionControl={false}

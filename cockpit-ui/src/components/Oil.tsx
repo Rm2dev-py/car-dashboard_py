@@ -18,7 +18,7 @@ export default function Oil({
   className = "",
   style,
   onColor = "orange",
-  offColor = "#FFFFFF",  // pour modifier la transparence mettre "none"
+  offColor = "#565656",  // pour modifier la transparence mettre "none"
   title = "Voyant huile",
 }: Props) {
   const wsData = useWS();

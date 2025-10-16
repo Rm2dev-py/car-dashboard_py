@@ -13,6 +13,9 @@ import VoyantCeinture from "./Ceinture";
 import IconPetrole from "./IconPetrole";
 import Oil from "./Oil";
 import GaugeCarbu from "./GaugeCarbu";
+import VoyantLock from "./VoyantLock";
+import GearPRND from "./GearPRND";
+import TempIconGauge from "./TempIconGauge";
 
 // Cadrans / gauges / décor
 import CadranVitesse from "./CadranVitesse";
@@ -27,9 +30,13 @@ import Text from "./Text";
 
 // Fond
 import BackgroundSVG from "./backgroundSVG";
+import RailDivider from "./RailDivider";
+import RailDivider450 from "./RailDivider450";
+
 
 // 🆕 Ajoute ton composant GPS
 import GpsMap from "./GpsMap";
+import WsStatus from "./WsStatus";
 
 export type Registry = Record<string, ComponentType<any>>;
 
@@ -49,6 +56,9 @@ export const COMPONENTS: Record<string, ComponentType<any>> = {
   IconPetrole,
   Oil,
   GaugeCarbu,
+  VoyantLock,
+  GearPRND,
+  TempIconGauge,
 
   // Cadrans / gauges / décor
   CadranVitesse,
@@ -60,7 +70,10 @@ export const COMPONENTS: Record<string, ComponentType<any>> = {
   VueGenerale,
   EllipseVit,
   Text,
+  RailDivider,
+  RailDivider450,
+  WsStatus,
 
   // 🆕 GPS
-  GpsMap,
+  GpsMap
 };

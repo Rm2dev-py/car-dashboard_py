@@ -15,7 +15,7 @@ type ItemCfg = {
 };
 
 type LayoutSchema = {
-  _meta?: { baseWidth?: number; baseHeight?: number; version?: number };
+  _meta?: { baseWidth?: number; baseHeight?: number; version?: number; /* zoom?: number */ };
   background?: ItemCfg & { x?: number; y?: number };
   items: Record<string, ItemCfg>;
 };
@@ -34,21 +34,29 @@ export default function Cockpit() {
   const baseW = layout._meta?.baseWidth ?? 1920;
   const baseH = layout._meta?.baseHeight ?? 1080;
 
-  // Background (non draggable si locked)
+  // ✅ NOUVEAU: facteur de zoom global lu depuis le JSON (fallback 1)
+  const userZoom = (layout as any)._meta?.zoom ?? 1;
+
   const BgComp =
     layout.background?.component ? COMPONENTS[layout.background.component] : null;
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-black text-white">
-      <ResponsiveStage baseWidth={baseW} baseHeight={baseH} /* fit="contain" maxScale={1} si tu veux */>
+      <ResponsiveStage
+        baseWidth={baseW}
+        baseHeight={baseH}
+        fit="contain"
+        maxScale={1}
+        userScale={userZoom}   // ⬅️ AJOUT
+      >
         {/* Background + items positionnés en coords 1920×1080 */}
         {BgComp &&
           (layout.background?.locked ? (
             <div
               style={{
                 position: "absolute",
-                left: layout.background.x ?? 0,
-                top: layout.background.y ?? 0,
+                left: 0,
+                top: 0,
                 zIndex: layout.background.zIndex ?? 0,
                 pointerEvents: "none",
               }}
@@ -69,7 +77,6 @@ export default function Cockpit() {
             </Draggable>
           ))}
 
-        {/* Items */}
         {Object.entries(layout.items).map(([id, cfg]) => {
           if (cfg.visible === false) return null;
           const Comp = COMPONENTS[cfg.component];

@@ -1,197 +1,61 @@
 {
   "_meta": {
-    "baseWidth": 1920,
-    "baseHeight": 1080,
-    "version": 1
+  "baseWidth": 1024,
+  "baseHeight": 600,
+  "fit": "contain",
+  "maxScale": 1,
+  "minScale": 0,
+  "zoom": 0.7
   },
   "background": {
     "component": "BackgroundSVG",
-    "x": 0,
-    "y": 0,
     "zIndex": 0,
-    "grid": 0,
-    "visible": true,
-    "locked": true
+    "visible": false,
+    "locked": true,
+    "props": {}
   },
+  
   "items": {
-    "cligno_g_d": {
-      "component": "Cligno_G_D",
-      "x": 120,
-      "y": 100,
-      "zIndex": 1,
-      "grid": 5,
-      "visible": true
-    },
-    "cligno_d": {
-      "component": "Cligno_D",
-      "x": 200,
-      "y": 100,
-      "zIndex": 1,
-      "grid": 5,
-      "visible": true
-    },
-    "feux_code": {
-      "component": "FeuxCode",
-      "x": 280,
-      "y": 100,
-      "zIndex": 2,
-      "grid": 5,
-      "visible": true
-    },
-    "feux_route": {
-      "component": "FeuxRoute",
-      "x": 360,
-      "y": 100,
-      "zIndex": 2,
-      "grid": 5,
-      "visible": true
-    },
-    "frein_park": {
-      "component": "FreinPark",
-      "x": 440,
-      "y": 100,
-      "zIndex": 2,
-      "grid": 5,
-      "visible": true
-    },
-    "vue_generale": {
-      "component": "VueGenerale",
-      "x": 180,
-      "y": 220,
-      "zIndex": 10,
-      "grid": 5,
-      "visible": true
-    },
-    "grad_cpt": {
-      "component": "GradCpt",
-      "x": 620,
-      "y": 300,
-      "zIndex": 30,
-      "grid": 5,
-      "visible": true
-    },
-    "ellipse_cpt": {
-      "component": "EllipseCpt",
-      "x": 780,
-      "y": 320,
-      "zIndex": 1,
-      "grid": 5,
-      "visible": true
-    },
-    "text_label": {
-      "component": "TextLabel",
-      "x": 820,
-      "y": 300,
-      "zIndex": 35,
-      "grid": 5,
-      "visible": true
-    },
-    "label_oil_low": {
-      "component": "Text",
-      "x": 820,
-      "y": 300,
-      "zIndex": 35,
-      "grid": 5,
-      "visible": true,
-      "props": { "text": "E", "color": "#fff", "fontSize": 20, "align": "left" }
-    },
-    "label_oil_High": {
-      "component": "Text",
-      "x": 1000,
-      "y": 340,
-      "zIndex": 35,
-      "grid": 5,
-      "visible": true,
-      "props": { "text": "F", "color": "#fff", "fontSize": 20, "align": "left" }
-    },
-    "rpm_dyn": {
-      "component": "RpmDyn",
-      "x": 900,
-      "y": 360,
-      "zIndex": 35,
-      "grid": 5,
-      "visible": true
-    },
-    "feux_antibrouillard": {
-      "component": "FeuxAntibrouillard",
-      "x": 520,
-      "y": 100,
-      "zIndex": 20,
-      "grid": 5,
-      "visible": true
-    },
-    "feux_antibrouillard_ar": {
-      "component": "FeuxAntibrouillardArriere",
-      "x": 600,
-      "y": 100,
-      "zIndex": 20,
-      "grid": 5,
-      "visible": true
-    },
-    "voyant_ceinture": {
-      "component": "VoyantCeinture",
-      "x": 680,
-      "y": 100,
-      "zIndex": 20,
-      "grid": 5,
-      "visible": true
-    },
-    "cadran_vitesse": {
-      "component": "CadranVitesse",
-      "x": 380,
-      "y": 480,
-      "zIndex": 10,
-      "grid": 5,
-      "visible": true
-    },
-    "grad_vit": {
-      "component": "GradVit",
-      "x": 380,
-      "y": 540,
-      "zIndex": 1,
-      "grid": 3,
-      "visible": true
-    },
-    "gauge_carbu": {
-      "component": "GaugeCarbu",
-      "x": 620,
-      "y": 540,
-      "zIndex": 20,
-      "grid": 5,
-      "visible": true
-    },
-    "icon_petrole": {
-      "component": "IconPetrole",
-      "x": 700,
-      "y": 540,
-      "zIndex": 20,
-      "grid": 5,
-      "visible": true
-    },
-    "temp_moteur": {
-      "component": "GaugeTemp",
-      "x": 620,
-      "y": 540,
-      "zIndex": 20,
-      "grid": 5,
-      "visible": true
-    },
-    "oil": {
-      "component": "Oil",
-      "x": 780,
-      "y": 540,
-      "zIndex": 20,
-      "grid": 5,
-      "visible": true
-    },
-    "ellipse_vit": {
-      "component": "EllipseVit",
-      "x": 600,
-      "y": 520,
-      "zIndex": 1,
-      "grid": 5,
-      "visible": true
-    },
+    "cligno_g_d": { "component": "Cligno_G_D", "x": 120, "y": 100, "zIndex": 1, "grid": 5, "visible": true },
+    "cligno_d":   { "component": "Cligno_D",   "x": 200, "y": 100, "zIndex": 1, "grid": 5, "visible": true },
+
+    "feux_code":  { "component": "FeuxCode",   "x": 280, "y": 100, "zIndex": 2, "grid": 5, "visible": true },
+    "VoyantLock":  { "component": "VoyantLock",   "x": 280, "y": 100, "zIndex": 2, "grid": 5, "visible": true },
+    "feux_route": { "component": "FeuxRoute",  "x": 360, "y": 100, "zIndex": 2, "grid": 5, "visible": true },
+    "frein_park": { "component": "FreinPark",  "x": 440, "y": 100, "zIndex": 2, "grid": 5, "visible": true },
+
+    "vue_generale": { "component": "VueGenerale", "x": 180, "y": 220, "zIndex": 10, "grid": 5, "visible": true },
+    "grad_cpt":     { "component": "GradCpt",     "x": 620, "y": 300, "zIndex": 30, "grid": 5, "visible": true },
+    "ellipse_cpt":  { "component": "EllipseCpt",  "x": 780, "y": 320, "zIndex": 1,  "grid": 5, "visible": true },
+
+    "text_label":   { "component": "TextLabel", "x": 820, "y": 300, "zIndex": 35, "grid": 5, "visible": true },
+    "label_oil_low":  { "component": "TextLabel", "x": 820,  "y": 340, "zIndex": 35, "grid": 5, "visible": true,
+                        "props": { "text": "E", "color": "#fff", "fontSize": 20, "align": "left" } },
+    "label_oil_high": { "component": "TextLabel", "x": 1000, "y": 340, "zIndex": 35, "grid": 5, "visible": true,
+                        "props": { "text": "F", "color": "#fff", "fontSize": 20, "align": "left" } },
+
+    "rpm_dyn": { "component": "RpmDyn", "x": 900, "y": 360, "zIndex": 35, "grid": 5, "visible": true },
+
+    "feux_antibrouillard":    { "component": "FeuxAntibrouillard",       "x": 520, "y": 100, "zIndex": 20, "grid": 5, "visible": true },
+    "feux_antibrouillard_ar": { "component": "FeuxAntibrouillardArriere", "x": 600, "y": 100, "zIndex": 20, "grid": 5, "visible": true },
+    "voyant_ceinture":        { "component": "VoyantCeinture",            "x": 680, "y": 100, "zIndex": 20, "grid": 5, "visible": true },
+
+    "cadran_vitesse": { "component": "CadranVitesse", "x": 380, "y": 480, "zIndex": 10, "grid": 5, "visible": true },
+    "grad_vit":       { "component": "GradVit",       "x": 380, "y": 540, "zIndex": 1,  "grid": 3, "visible": true },
+
+    "gauge_carbu": { "component": "GaugeCarbu", "x": 620, "y": 540, "zIndex": 20, "grid": 5, "visible": true },
+    "icon_petrole": { "component": "IconPetrole", "x": 700, "y": 540, "zIndex": 20, "grid": 5, "visible": true },
+
+    "temp_moteur": { "component": "GaugeTemp", "x": 820, "y": 540, "zIndex": 20, "grid": 5, "visible": true },
+    "oil":         { "component": "Oil",       "x": 900, "y": 540, "zIndex": 20, "grid": 5, "visible": true },
+
+    "ellipse_vit": { "component": "EllipseVit", "x": 600, "y": 520, "zIndex": 1, "grid": 5, "visible": true },
+    "rail_divider": { "component": "RailDivider", "x": 600, "y": 520, "zIndex": 1, "grid": 5, "visible": true },
+    "rail_divider_450": { "component": "RailDivider450", "x": 600, "y": 610, "zIndex": 1, "grid": 5, "visible": true },
+    "gear_prnd": { "component": "GearPRND", "x": 870, "y": 650, "zIndex": 30, "grid": 5, "visible": true },
+    "temp_icon_gauge": { "component": "TempIconGauge", "x": 245, "y": 590, "zIndex": 30, "grid": 2, "visible": true },
+    "WS": { "component": "WsStatus", "x": 610, "y": 330, "zIndex": 30, "grid": 2, "visible": true },
+
     "gps_map": {
       "component": "GpsMap",
       "x": 1120,
@@ -203,10 +67,10 @@
         "widthPx": 460,
         "heightPx": 260,
         "borderRadiusPx": 18,
-       "borderWidthPx": 3,
-       "borderColor": "none",
-       "borderStyle": "none",
-       "boxShadow": "0 0 20px rgba(0,229,255,0.35)"
+        "borderWidthPx": 3,
+        "borderColor": "none",
+        "borderStyle": "none",
+        "boxShadow": "0 0 20px rgba(0,229,255,0.35)"
       }
     }
   }

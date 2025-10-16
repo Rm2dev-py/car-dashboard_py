@@ -1,6 +1,12 @@
 // src/lib/DragSystem.tsx
 import React, {
-  createContext, useContext, useEffect, useMemo, useRef, useState, useCallback,
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useCallback,
 } from "react";
 import { useDragMode } from "../DragContext";
 
@@ -11,8 +17,8 @@ import { useDragMode } from "../DragContext";
 type StageCtx = { scale: number; baseWidth: number; baseHeight: number };
 const StageContext = createContext<StageCtx>({
   scale: 1,
-  baseWidth: 1920,    // Figma par défaut
-  baseHeight: 1080,    // Figma par défaut
+  baseWidth: 1024,
+  baseHeight: 600,
 });
 
 export function useStage() {
@@ -20,63 +26,92 @@ export function useStage() {
 }
 
 type ResponsiveStageProps = {
-  baseWidth?: number;        // défaut Figma
-  baseHeight?: number;       // défaut Figma
+  baseWidth?: number;
+  baseHeight?: number;
   className?: string;
   children: React.ReactNode;
-  /** ‘contain’ (par défaut) garde tout visible, ‘cover’ remplit tout l’écran */
+  /** ‘contain’ garde tout visible, ‘cover’ remplit tout l’écran (peut rogner) */
   fit?: "contain" | "cover";
   /** Limiter l’upscaling si tu veux éviter > 1:1 */
-  maxScale?: number; // ex: 1
-  minScale?: number; // ex: 0.5
+  maxScale?: number;
+  minScale?: number;
+  /** Contrôle d’alignement de la Stage dans son wrapper */
+  align?: "center" | "top-left";
+  /** ✅ Nouveau : facteur de zoom global (ex: 0.85 pour réduire de 15%) */
+  userScale?: number;
 };
 
 export function ResponsiveStage({
-  baseWidth = 1497.24,
-  baseHeight = 571.72,
+  baseWidth = 1024,
+  baseHeight = 600,
   className = "",
   children,
   fit = "contain",
   maxScale = Infinity,
   minScale = 0,
+  align = "center", // défaut: centré
+  userScale = 1,    // ✅ défaut: pas de zoom
 }: ResponsiveStageProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
 
   useEffect(() => {
-    const el = containerRef.current?.parentElement;
+    const el = wrapperRef.current;
     if (!el) return;
 
     const compute = () => {
-      const sx = el.clientWidth / baseWidth;
-      const sy = el.clientHeight / baseHeight;
+      const w = Math.max(0, el.clientWidth);
+      const h = Math.max(0, el.clientHeight);
+      const sx = w / baseWidth;
+      const sy = h / baseHeight;
       const raw = fit === "cover" ? Math.max(sx, sy) : Math.min(sx, sy);
-      const clamped = Math.max(minScale, Math.min(raw, maxScale));
-      setScale(clamped || 1);
+      const clamped = Math.max(minScale, Math.min(raw || 0, maxScale));
+      setScale(clamped > 0 ? clamped : 1);
     };
 
     compute();
-
-    // ResizeObserver > window.resize (plus fiable, parents flex etc.)
     const ro = new ResizeObserver(compute);
     ro.observe(el);
     return () => ro.disconnect();
   }, [baseWidth, baseHeight, fit, maxScale, minScale]);
 
+  // ✅ applique le zoom utilisateur SUR l’échelle calculée
+  const finalScale = scale * (userScale ?? 1);
+
+  const ctx = useMemo(
+    () => ({ scale: finalScale, baseWidth, baseHeight }),
+    [finalScale, baseWidth, baseHeight]
+  );
+
+  // Positionnement selon align (inchangé, on remplace juste scale -> finalScale)
+  const innerStyle: React.CSSProperties =
+    align === "center"
+      ? {
+          position: "absolute",
+          left: "44%",            // 👈 tu avais 59% : je ne touche pas
+          top: "44%",
+          width: baseWidth,
+          height: baseHeight,
+          transform: `translate(-50%, -50%) scale(${finalScale})`, // ✅
+          transformOrigin: "top left",
+        }
+      : {
+          position: "absolute",
+          left: 0,
+          top: 0,
+          width: baseWidth,
+          height: baseHeight,
+          transform: `scale(${finalScale})`, // ✅
+          transformOrigin: "top left",
+        };
+
   return (
-    <StageContext.Provider value={{ scale, baseWidth, baseHeight }}>
-      <div className={`w-full h-full relative overflow-hidden ${className}`}>
-        <div
-          ref={containerRef}
-          className="absolute left-1/2 top-1/2 origin-top-left"
-          style={{
-            width: baseWidth,
-            height: baseHeight,
-            transform: `translate(-50%, -50%) scale(${scale})`,
-          }}
-        >
-          {children}
-        </div>
+    <StageContext.Provider value={ctx}>
+      <div
+        ref={wrapperRef}
+        className={`w-full h-full relative overflow-hidden ${className}`}
+      >
+        <div style={innerStyle}>{children}</div>
       </div>
     </StageContext.Provider>
   );
@@ -89,18 +124,20 @@ export function ResponsiveStage({
 type Pos = { x: number; y: number };
 
 type DraggableProps = {
-  id: string;                         // clé de persistance (unique)
+  id: string; // clé de persistance (unique)
   children: React.ReactNode;
-  defaultPos?: Pos;                   // position par défaut (repère base)
-  grid?: number;                      // snap (px en repère base)
+  /** Position par défaut (coords dans le repère baseWidth×baseHeight) */
+  defaultPos?: Pos;
+  /** Snap en px (dans le repère base). 0 = pas de snap */
+  grid?: number;
   zIndex?: number;
   className?: string;
   style?: React.CSSProperties;
   disabled?: boolean;
   /** Restreindre le drag dans la scène (0..baseWidth/baseHeight) */
-  boundsStage?: boolean;              // défaut: false
-  /** Option: selector d’une poignée : drag seulement quand on down sur cet élément */
-  handle?: string;                    // ex: ".header"
+  boundsStage?: boolean;
+  /** Drag seulement si le mousedown cible ce sélecteur (ex: ".handle") */
+  handle?: string;
   onChangePos?: (pos: Pos) => void;
   onDragStart?: (pos: Pos) => void;
   onDragMove?: (pos: Pos) => void;
@@ -128,39 +165,52 @@ export function Draggable({
   const storageKey = `pos_${id}`;
 
   const [pos, setPos] = useState<Pos>(() => {
-    const saved = localStorage.getItem(storageKey);
-    return saved ? JSON.parse(saved) : defaultPos;
+    try {
+      const saved = localStorage.getItem(storageKey);
+      return saved ? JSON.parse(saved) : defaultPos;
+    } catch {
+      return defaultPos;
+    }
   });
 
-  // refs pour éviter les fermetures sur pos/scale pendant le drag
+  // refs pour éviter les fermetures pendant le drag
   const posRef = useRef(pos);
   const scaleRef = useRef(scale);
-  useEffect(() => { posRef.current = pos; }, [pos]);
-  useEffect(() => { scaleRef.current = scale; }, [scale]);
+  useEffect(() => {
+    posRef.current = pos;
+  }, [pos]);
+  useEffect(() => {
+    scaleRef.current = scale;
+  }, [scale]);
 
   const canDrag = dragEnabled && !disabled;
   const dragging = useRef(false);
   const offset = useRef({ dx: 0, dy: 0 });
 
-  const snap = (v: number) => Math.round(v / grid) * grid;
+  const snap = (v: number) => (grid > 0 ? Math.round(v / grid) * grid : v);
 
   const clampToStage = (p: Pos): Pos => {
     if (!boundsStage) return p;
-    const w = baseWidth;
-    const h = baseHeight;
-    // Ici on ne connaît pas la taille du child, on clamp juste le point d’ancrage.
     return {
-      x: Math.max(0, Math.min(p.x, w)),
-      y: Math.max(0, Math.min(p.y, h)),
+      x: Math.max(0, Math.min(p.x, baseWidth)),
+      y: Math.max(0, Math.min(p.y, baseHeight)),
     };
   };
 
   const save = (p: Pos) => {
-    localStorage.setItem(storageKey, JSON.stringify(p));
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(p));
+    } catch { /* private-mode/quota, on ignore */ }
     onChangePos?.(p);
   };
 
-  const getClientXY = (e: MouseEvent | TouchEvent | React.MouseEvent | React.TouchEvent) => {
+  const getClientXY = (
+    e:
+      | MouseEvent
+      | TouchEvent
+      | React.MouseEvent
+      | React.TouchEvent
+  ): { cx: number; cy: number } => {
     // @ts-ignore
     const t = e.touches?.[0] ?? e.changedTouches?.[0];
     // @ts-ignore
@@ -173,19 +223,23 @@ export function Draggable({
   const isHandleHit = (evtTarget: EventTarget | null, root: HTMLElement): boolean => {
     if (!handle) return true;
     if (!(evtTarget instanceof Element)) return false;
-    // drag autorisé si le target ou l’un de ses parents match le sélecteur
-    return !!evtTarget.closest(handle) && root.contains(evtTarget.closest(handle));
+    const h = evtTarget.closest(handle);
+    return !!h && root.contains(h);
   };
 
   const startListeners = useCallback(() => {
     const onMove = (ev: MouseEvent | TouchEvent) => {
       if (!dragging.current || !canDrag) return;
+
       const { clientX, clientY } =
         "touches" in ev
-          ? { clientX: (ev as TouchEvent).touches[0]?.clientX ?? 0, clientY: (ev as TouchEvent).touches[0]?.clientY ?? 0 }
+          ? {
+              clientX: (ev as TouchEvent).touches[0]?.clientX ?? 0,
+              clientY: (ev as TouchEvent).touches[0]?.clientY ?? 0,
+            }
           : { clientX: (ev as MouseEvent).clientX, clientY: (ev as MouseEvent).clientY };
 
-      const sc = scaleRef.current;
+      const sc = scaleRef.current || 1;
       const x = (clientX - offset.current.dx) / sc;
       const y = (clientY - offset.current.dy) / sc;
 
@@ -197,9 +251,11 @@ export function Draggable({
     const onEnd = () => {
       if (!dragging.current) return;
       dragging.current = false;
+
       const p = posRef.current;
       save(p);
       onDragEnd?.(p);
+
       document.removeEventListener("mousemove", onMove);
       document.removeEventListener("mouseup", onEnd);
       document.removeEventListener("touchmove", onMove as any);
@@ -214,15 +270,13 @@ export function Draggable({
     document.addEventListener("touchcancel", onEnd);
 
     return onEnd;
-  }, [canDrag, onDragEnd, onDragMove]); // scale/pos via refs
+  }, [canDrag, onDragEnd, onDragMove]);
 
   const rootRef = useRef<HTMLDivElement>(null);
 
   const handleStart = (e: React.MouseEvent | React.TouchEvent) => {
     if (!canDrag) return;
-
-    // Ignore bouton droit & ctrl/alt/meta (sélection, context menu…)
-    // @ts-ignore
+    // @ts-ignore — ignore bouton droit
     if ("button" in e && e.button !== 0) return;
 
     const root = rootRef.current!;
@@ -232,8 +286,9 @@ export function Draggable({
     e.preventDefault();
 
     const { cx, cy } = getClientXY(e);
-    const sc = scaleRef.current;
-    // offset dans l'espace *scalé* pour avoir des coords nettes
+    const sc = scaleRef.current || 1;
+
+    // offset dans l'espace *scalé* pour un delta propre
     offset.current = { dx: cx - posRef.current.x * sc, dy: cy - posRef.current.y * sc };
     dragging.current = true;
 
@@ -245,7 +300,6 @@ export function Draggable({
     const next = clampToStage({ x: snap(x), y: snap(y) });
     setPos(next);
 
-    // attache les listeners jusqu’au end
     startListeners();
   };
 
