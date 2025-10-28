@@ -1,19 +1,21 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useMemo } from "react";
 import { useWS } from "../WebSocketProvider";
-import { useDragMode } from "../DragContext";
 
 type Props = {
   className?: string;
-  containerStyle?: React.CSSProperties; // ✅ renommé
-  maxRPM?: number; // défaut: 6000
-  displayMode?: "k" | "raw"; // défaut: "k"
-  decimals?: number; // défaut: 0
-  rounding?: "floor" | "round" | "ceil"; // défaut: "floor"
-  color?: string; // défaut: "#fff"
-  fontSize?: number | string; // défaut: 32
-  fontWeight?: React.CSSProperties["fontWeight"]; // défaut: "bold"
+  style?: React.CSSProperties;
+  maxRPM?: number;                         // 6000 ou 7000 selon ta calib backend
+  displayMode?: "k" | "raw";               // "k" par défaut
+  decimals?: number;                       // 0 par défaut
+  rounding?: "floor" | "round" | "ceil";
+  showText?: boolean;                      // false par défaut
   format?: (rpm: number, display: string) => React.ReactNode;
-  showText?: boolean; // défaut: false
+  color?: string;                          // "#fff"
+  fontSize?: number | string;              // 32
+  fontWeight?: React.CSSProperties["fontWeight"]; // "bold"
+
+  // ⚡ Micro-transition pure CSS (pas de lissage des valeurs)
+  transitionMs?: number;                   // 60–120 ms conseillé — défaut 90
 };
 
 export default function RpmDyn({
@@ -21,125 +23,62 @@ export default function RpmDyn({
   displayMode = "k",
   decimals = 0,
   rounding = "floor",
+  showText = false,
+  format,
   color = "#FFFFFF",
   fontSize = 32,
   fontWeight = "bold",
-  format,
-  showText = false,
   className,
-  containerStyle, // ✅
+  style,
+  transitionMs = 1000,
 }: Props) {
   const wsData = useWS();
-  const voltage = Number(wsData?.rpm_moteur ?? 0); // 0–3.3V
-  const raw = Math.max(0, Math.min(maxRPM, (voltage / 3.3) * maxRPM));
 
-  // valeur pour l'affichage numérique
-  const valueForDisplay = displayMode === "k" ? raw / 1000 : raw;
-  const applyRound = (v: number) =>
-    rounding === "ceil" ? Math.ceil(v) : rounding === "round" ? Math.round(v) : Math.floor(v);
-  const rounded = decimals > 0 ? valueForDisplay.toFixed(decimals) : String(applyRound(valueForDisplay));
-  const displayText = rounded;
+  // Valeur métier directe (déjà en RPM) + garde-fous
+  const rpm = useMemo(() => {
+    const v = Number(wsData?.rpm_moteur ?? 0);
+    const safe = Number.isFinite(v) ? v : 0;
+    return Math.max(0, Math.min(maxRPM, safe));
+  }, [wsData?.rpm_moteur, maxRPM]);
 
-  // mapping valeur -> angle (entre -108° et +108°)
+  // Mapping angle linéaire –108° → +108°
   const MIN_ANGLE = -108;
   const MAX_ANGLE = 108;
-  const angle = MIN_ANGLE + (raw / maxRPM) * (MAX_ANGLE - MIN_ANGLE);
+  const ratio = rpm / maxRPM;
+  const angle = Math.max(MIN_ANGLE, Math.min(MAX_ANGLE, MIN_ANGLE + ratio * (MAX_ANGLE - MIN_ANGLE)));
 
-  // position drag
-  const [position, setPosition] = useState<{ x: number; y: number }>(() => {
-    const saved = localStorage.getItem("rpm_dyn_position");
-    return saved ? JSON.parse(saved) : { x: 600, y: 200 };
-  });
-  const { dragEnabled } = useDragMode();
-  const dragging = useRef(false);
-  const offset = useRef({ x: 0, y: 0 });
-  const ref = useRef<HTMLDivElement>(null);
-
-  const handleStart = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
-    dragging.current = true;
-    const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
-    const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
-    offset.current = { x: clientX - position.x, y: clientY - position.y };
-    // amorce du mouvement
-    if ("nativeEvent" in e) {
-      const ne = e.nativeEvent as unknown as MouseEvent | TouchEvent;
-      handleMove(ne);
-    }
-  };
-
-  const handleMove = (e: MouseEvent | TouchEvent) => {
-    if (!dragging.current) return;
-    const clientX = "touches" in e ? (e as TouchEvent).touches[0].clientX : (e as MouseEvent).clientX;
-    const clientY = "touches" in e ? (e as TouchEvent).touches[0].clientY : (e as MouseEvent).clientY;
-    const grid = 5;
-    const snappedX = Math.round((clientX - offset.current.x) / grid) * grid;
-    const snappedY = Math.round((clientY - offset.current.y) / grid) * grid;
-    setPosition({ x: snappedX, y: snappedY });
-  };
-
-  const handleEnd = () => {
-    dragging.current = false;
-  };
-
-  useEffect(() => {
-    localStorage.setItem("rpm_dyn_position", JSON.stringify(position));
-  }, [position]);
-
-  useEffect(() => {
-    window.addEventListener("mousemove", handleMove);
-    window.addEventListener("mouseup", handleEnd);
-    window.addEventListener("touchmove", handleMove, { passive: false });
-    window.addEventListener("touchend", handleEnd);
-    return () => {
-      window.removeEventListener("mousemove", handleMove);
-      window.removeEventListener("mouseup", handleEnd);
-      window.removeEventListener("touchmove", handleMove);
-      window.removeEventListener("touchend", handleEnd);
-    };
-  }, []);
+  // Texte optionnel
+  const roundFn =
+    rounding === "ceil" ? Math.ceil : rounding === "round" ? Math.round : Math.floor;
+  const valueForDisplay = displayMode === "k" ? rpm / 1000 : rpm;
+  const displayText =
+    decimals > 0 ? valueForDisplay.toFixed(decimals) : String(roundFn(valueForDisplay));
 
   return (
-    <div
-      ref={ref}
-      className={className}
-      style={{
-        position: "absolute",
-        top: position.y,
-        left: position.x,
-        zIndex: 30,
-        cursor: dragEnabled ? "grab" : "default",
-        touchAction: "none",
-        textAlign: "center",
-        ...(containerStyle || {}), // ✅ plus d'erreur TS
-      }}
-      onMouseDown={dragEnabled ? handleStart : undefined}
-      onTouchStart={dragEnabled ? handleStart : undefined}
-    >
-      {/* SVG cadran + aiguille */}
-      <svg width="470" height="470" viewBox="0 0 470 470" xmlns="http://www.w3.org/2000/svg">
+    <div className={className} style={style}>
+      <svg
+        width="470"
+        height="470"
+        viewBox="0 0 470 470"
+        xmlns="http://www.w3.org/2000/svg"
+        role="img"
+        aria-label={`Régime ${roundFn(rpm)} RPM`}
+        style={{ display: "block" }}
+      >
         <circle cx="235" cy="235" r="15" fill="#FF0707" stroke="#500" strokeWidth="3" />
-        <g transform={`rotate(${angle} 235 235)`}>
+        {/* ✅ Transition CSS ultra-courte pour la fluidité, sans lissage de données */}
+        <g
+          transform={`rotate(${angle} 235 235)`}
+          style={{
+            transition: `transform ${Math.max(0, transitionMs)}ms linear`,
+            willChange: "transform",
+          }}
+        >
           <line x1="235" y1="235" x2="235" y2="40" stroke="#FF0707" strokeWidth="4" strokeLinecap="round" />
           <line x1="235" y1="235" x2="235" y2="260" stroke="#FF0707" strokeWidth="4" strokeLinecap="round" />
         </g>
       </svg>
 
-      {/* Texte numérique — commenté par défaut */}
-      {/* 
-      <div
-        style={{
-          color,
-          fontSize,
-          fontWeight,
-          userSelect: "none",
-          marginTop: -210,
-        }}
-      >
-        {format ? format(raw, displayText) : displayText}
-      </div>
-      */}
-
-      {/* Option d’activation sans décommenter */}
       {showText && (
         <div
           style={{
@@ -148,9 +87,10 @@ export default function RpmDyn({
             fontWeight,
             userSelect: "none",
             marginTop: -210,
+            textAlign: "center",
           }}
         >
-          {format ? format(raw, displayText) : displayText}
+          {format ? format(rpm, displayText) : displayText}
         </div>
       )}
     </div>
